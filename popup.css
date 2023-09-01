@@ -1,0 +1,6 @@
+#thumbnail {
+    height: 75px;
+    width: auto;
+    display: block;
+    object-fit: cover;
+}

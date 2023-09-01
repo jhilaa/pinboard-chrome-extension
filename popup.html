@@ -1,16 +1,19 @@
 <!DOCTYPE html>
-<html>
+<html xmlns="http://www.w3.org/1999/html">
 <head>
   <title>Pinboard Chrome Extension</title>
+    <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <h1>Ajouter un Elément</h1>
   <form id="addForm">
     <label for="title">Titre:</label>
-    <input type="text" id="title" name="title"><br><br>
+      <textarea rows="2" cols="30" id="title" name="title"></textarea><br><br>
 
-    <label for="comment">Commentaire:</label>
-    <input type="text" id="comment" name="comment"><br><br>
+    <label for="comment">Note:</label>
+    <textarea rows="4" cols="30" id="comment" name="comment"></textarea><br><br>
+
+      <img id="thumbnail" src="https://source.unsplash.com/600x400/?tree" alt="thumbnail" class="thumbnail"
+           width="600">
 
     <label>Tags:</label><br>
     <div id="items"></div><br>
