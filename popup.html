@@ -1,26 +1,33 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/html">
 <head>
-  <title>Pinboard Chrome Extension</title>
+    <title>Pinboard Chrome Extension</title>
     <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <form id="addForm">
+<form id="addForm">
     <label for="title">Titre:</label>
-      <textarea rows="2" cols="30" id="title" name="title"></textarea><br><br>
+    <textarea rows="2" cols="30" id="title" name="title"></textarea><br><br>
+
+    <label for="url">Url:</label>
+    <textarea rows="2" cols="30" id="url" name="url"></textarea><br><br>
 
     <label for="comment">Note:</label>
     <textarea rows="4" cols="30" id="comment" name="comment"></textarea><br><br>
 
-      <img id="thumbnail" src="https://source.unsplash.com/600x400/?tree" alt="thumbnail" class="thumbnail"
-           width="600">
+    <label for="img_url">Apercu:</label>
+    <input id="img_url" name="img_url" type="text"  />
+
+    <img id="img" src="https://source.unsplash.com/600x400/?tree" alt="thumbnail" class="thumbnail"
+         width="600">
 
     <label>Tags:</label><br>
-    <div id="items"></div><br>
+    <div id="items"></div>
+    <br>
 
     <button type="submit">Ajouter</button>
-  </form>
+</form>
 
-  <script src="popup.js"></script>
+<script src="popup.js"></script>
 </body>
 </html>

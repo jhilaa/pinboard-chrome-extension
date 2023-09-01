@@ -31,12 +31,13 @@ document.addEventListener("DOMContentLoaded", function () {
                         const form = document.getElementById("addForm");
                         const titleInput = form.querySelector("#title");
                         titleInput.value = currentTab.title; // Populate the title input with the current page's title
+                        const urlInput = form.querySelector("#url");
+                        urlInput.value = currentTab.url;
                     }
                 });
             }
             ;
         })
-
 
     // Soumettre le formulaire
     const form = document.getElementById("addForm");
@@ -46,18 +47,28 @@ document.addEventListener("DOMContentLoaded", function () {
         const formData = new FormData(form);
         const selectedItems = formData.getAll("items");
 
+        // Encodage des caractères spéciaux
+        const name = encodeURIComponent(formData.get("title"));
+        const url = encodeURIComponent(formData.get("url"));
+        const description = encodeURIComponent(formData.get("comment"));
+        //const img_url = encodeURIComponent(formData.get("img_url"));
+        const img_url = "test";
+
+        console.log("img_url : " + img_url);
+
         // Préparez les données pour la requête POST
         const postData = {
             "fields": {
                 "name": formData.get("title"),
                 "notes": "0",
-                "url": "url",
+                "url": formData.get("url"),
                 "description": formData.get("comment"),
-                "img_url": "https://source.unsplash.com/600x400/?car",
+                "img_url": formData.get("img_url"),
                 "tag": selectedItems
             }
-
         };
+
+        console.log("postData : " + postData.toString());
 
         // Envoie de la requête POST
         fetch("https://api.airtable.com/v0/app7zNJoX11DY99UA/Pages",
@@ -77,7 +88,8 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     //charger la miniature
-    const thumbnail = form.querySelector("#thumbnail");
+    const img = form.querySelector("#img");
+    const img_url = form.querySelector("#img_url");
 
     chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
         const currentTab = tabs[0];
@@ -95,7 +107,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (ogImage) {
                     const thumbnailUrl = ogImage.getAttribute('content');
                     console.log("Thumbnail URL:", thumbnailUrl);
-                    thumbnail.src = thumbnailUrl
+                    img_url.value = thumbnailUrl;
+                    img.src = thumbnailUrl;
                     return thumbnailUrl;
                 } else {
                     console.log("No Open Graph image found.");
