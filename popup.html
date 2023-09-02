@@ -3,6 +3,10 @@
 <head>
     <title>Pinboard Chrome Extension</title>
     <link rel="stylesheet" href="popup.css">
+    <!-- Bootstrap CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
 </head>
 <body>
 <form id="addForm">
@@ -15,11 +19,18 @@
     <label for="comment">Note:</label>
     <textarea rows="4" cols="30" id="comment" name="comment"></textarea><br><br>
 
-    <label for="img_url">Apercu:</label>
-    <input id="img_url" name="img_url" type="text"  />
-
+    <label for="img_url" style="display: none">Apercu:</label>
+    <input id="img_url" name="img_url" type="text" style="display: none"  />
     <img id="img" src="https://source.unsplash.com/600x400/?tree" alt="thumbnail" class="thumbnail"
          width="600">
+
+    <input id="rating" name="rating" type="text" style="display: none" value="0" />
+    <div id="stars" class="rating position-relative d-flex rounded-pill" >
+        <i class="star bi bi-star position-absolute top-50 start-0 translate-middle-y pb-1" data-value="1"></i>
+        <i class="star bi bi-star position-absolute top-50 start-50 translate-middle pb-1" data-value="2"></i>
+        <i class="star bi bi-star position-absolute top-50 end-0 translate-middle-y pb-1" data-value="3"></i>
+    </div>
+
 
     <label>Tags:</label><br>
     <div id="items"></div>

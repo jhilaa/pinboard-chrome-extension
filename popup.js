@@ -4,6 +4,36 @@ document.addEventListener("DOMContentLoaded", function () {
         "Authorization": `Bearer ${token}`
     });
 
+    // event sur le score
+    const rating = document.getElementById('rating');
+    const stars = document.querySelectorAll('.star');
+    let currentRating = rating.value;
+
+    //TODO a poursuivre
+    stars.forEach(star => {
+        star.addEventListener('click', () => {
+            let old_value = parseInt(rating.value);
+            let new_value = parseInt(star.getAttribute('data-value'));
+
+            if (old_value == 1 && new_value == 1) {
+                new_value=0;
+            }
+            rating.value = new_value;
+            updateStars(old_value, new_value);
+        });
+    });
+
+    function updateStars(old_value, new_value) {
+        stars.forEach((star, index) => {
+            if (index <= new_value-1) {
+                star.classList.add('bi-star-fill');
+                star.classList.remove('bi-star');
+            } else {
+                star.classList.add('bi-star');
+                star.classList.remove('bi-star-fill');
+            }
+        });
+    }
 
     fetch("https://api.airtable.com/v0/app7zNJoX11DY99UA/Tags?content", {headers})
         .then(response => response.json())
@@ -39,6 +69,8 @@ document.addEventListener("DOMContentLoaded", function () {
             ;
         })
 
+    //
+
     // Soumettre le formulaire
     const form = document.getElementById("addForm");
     form.addEventListener("submit", function (event) {
@@ -47,20 +79,13 @@ document.addEventListener("DOMContentLoaded", function () {
         const formData = new FormData(form);
         const selectedItems = formData.getAll("items");
 
-        // Encodage des caractères spéciaux
-        const name = encodeURIComponent(formData.get("title"));
-        const url = encodeURIComponent(formData.get("url"));
-        const description = encodeURIComponent(formData.get("comment"));
-        //const img_url = encodeURIComponent(formData.get("img_url"));
-        const img_url = "test";
-
         console.log("img_url : " + img_url);
 
         // Préparez les données pour la requête POST
         const postData = {
             "fields": {
                 "name": formData.get("title"),
-                "notes": "0",
+                "rating": formData.get("rating"),
                 "url": formData.get("url"),
                 "description": formData.get("comment"),
                 "img_url": formData.get("img_url"),
@@ -112,6 +137,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     return thumbnailUrl;
                 } else {
                     console.log("No Open Graph image found.");
+                    const default_img_url ="https://img.freepik.com/free-vector/colorful-pastel-poly-background_53876-62618.jpg?size=626&ext=jpg";
+                    img_url.value = default_img_url
+                    img.src = default_img_url
                     return null
                 }
             })
