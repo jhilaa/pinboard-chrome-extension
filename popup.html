@@ -9,41 +9,48 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
 </head>
 <body>
-<form id="addForm">
-    <label for="card_id" class="hidden">id:</label>
-    <input id="card_id" name="card_id" class="hidden"/><br>
-
-    <label for="title">Titre:</label>
-    <textarea rows="2" cols="30" id="title" name="title"></textarea><br>
-
-    <label for="url">Url:</label>
-    <textarea rows="2" cols="30" id="url" name="url"></textarea><br>
-
-    <label for="comment">Note:</label>
-    <textarea rows="4" cols="30" id="comment" name="comment"></textarea><br>
-
-    <label for="img_url" style="display: none">Apercu:</label>
-    <input id="img_url" name="img_url" type="text" style="display: none"  />
-    <img id="img" src="" alt="thumbnail" class="thumbnail"
-         width="600">
-
-    <input id="rating" name="rating" type="text" style="display: none" rating="0" />
-    <div id="stars" class="rating position-relative d-flex rounded-pill" >
-        <i class="star bi bi-star position-absolute top-50 start-0 translate-middle-y pb-1" data-value="1"></i>
-        <i class="star bi bi-star position-absolute top-50 start-50 translate-middle pb-1" data-value="2"></i>
-        <i class="star bi bi-star position-absolute top-50 end-0 translate-middle-y pb-1" data-value="3"></i>
+<div id="spinnerContainer">
+    <div class="spinner-border text-secondary" role="status">
+        <span class="sr-only"></span>
     </div>
+</div>
+<div id="content">
+    <form id="addForm">
+        <label for="card_id" class="hidden">id:</label>
+        <input id="card_id" name="card_id" class="hidden"/><br>
+
+        <label for="title">Titre:</label>
+        <textarea rows="2" cols="30" id="title" name="title"></textarea><br>
+
+        <label for="url">Url:</label>
+        <textarea rows="2" cols="30" id="url" name="url"></textarea><br>
+
+        <label for="comment">Note:</label>
+        <textarea rows="4" cols="30" id="comment" name="comment"></textarea><br>
+
+        <label for="img_url" style="display: none">Apercu:</label>
+        <input id="img_url" name="img_url" type="text" style="display: none"/>
+        <img id="img" src="" alt="thumbnail" class="thumbnail"
+             width="600">
+
+        <input id="rating" name="rating" type="text" style="display: none" rating="0"/>
+        <div id="stars" class="rating position-relative d-flex rounded-pill">
+            <i class="star bi bi-star position-absolute top-50 start-0 translate-middle-y pb-1" data-value="1"></i>
+            <i class="star bi bi-star position-absolute top-50 start-50 translate-middle pb-1" data-value="2"></i>
+            <i class="star bi bi-star position-absolute top-50 end-0 translate-middle-y pb-1" data-value="3"></i>
+        </div>
 
 
-    <label>Tags:</label><br>
-    <div class="tags"id="tags"></div>
-    <br>
+        <label>Tags:</label><br>
+        <div class="tags" id="tags"></div>
+        <br>
 
-    <button type="submit" id="add" name="action" value="add">Ajouter</button>
-    <button type="submit" id="update" name="action" value="update">Mettre à jour</button>
-    <input type="button" id="cancel" value="Annuler" onclick=""/>
+        <button type="submit" id="add" name="action" value="add">Ajouter</button>
+        <button type="submit" id="update" name="action" value="update">Mettre à jour</button>
+        <input type="button" id="cancel" value="Annuler" onclick=""/>
 
-</form>
+    </form>
+</div>
 
 <script src="popup.js"></script>
 </body>

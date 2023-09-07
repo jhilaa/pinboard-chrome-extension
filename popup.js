@@ -11,6 +11,10 @@ document.addEventListener("DOMContentLoaded", async function () {
     const addButton = document.getElementById('add');
     const updateButton = document.getElementById('update');
 
+    const content = document.getElementById("content");
+    content.style.display = "block";
+    const spinnerContainer = document.getElementById("spinnerContainer");
+
     cancelButton.addEventListener("click", function () {
         // Close the popup window
         window.close();
@@ -189,7 +193,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         await handleTagsData(); // liste de tous les tags
         const tab = await getCurrentTab(); // données de la page
         await handleTabData(tab); // récup des données en base ou des données de la page
-
+        //
+        spinnerContainer.style.display = "none";
         // submit
         form.addEventListener("submit", async function (event) {
             event.preventDefault();
