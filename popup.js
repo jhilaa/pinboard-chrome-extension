@@ -11,7 +11,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     const addButton = document.getElementById('add');
     const updateButton = document.getElementById('update');
     const imgUrl = document.getElementById('img_url');
-    const domainFieldset = document.getElementById('domains');
+    const domainsContainer = document.getElementById('domains');
+    const tagsDiv = document.getElementById("tags");
 
     const content = document.getElementById("content");
     content.style.display = "block";
@@ -19,17 +20,17 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     if (document.querySelector('input[name="domain"]')) {
         document.querySelectorAll('input[name="domain"]').forEach((elem) => {
-            elem.addEventListener("change", function(event) {
+            elem.addEventListener("change", function (event) {
                 const item = event.target.value;
                 console.log(item);
             });
         });
     }
 
-    imgUrl.addEventListener("input", (e) =>{
+    imgUrl.addEventListener("input", (e) => {
         e.preventDefault();
         const imgElement = document.getElementById("img")
-        imgElement.src= imgUrl.value;
+        imgElement.src = imgUrl.value;
     })
 
     cancelButton.addEventListener("click", function () {
@@ -116,7 +117,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     async function getTagsData(domain) {
         try {
-            const apiUrl = `https://api.airtable.com/v0/app7zNJoX11DY99UA/Tags `;
+            const apiUrl = `https://api.airtable.com/v0/app7zNJoX11DY99UA/Tags?filterByFormula=` + encodeURIComponent(`AND({domain_name}="` + domain + `")`);
             const response = await fetch(apiUrl, {headers});
             const data = await response.json();
             return data;
@@ -137,8 +138,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 return 0;
             });
 
-
-            const tagsDiv = document.getElementById("tags");
+            tagsDiv.innerHTML = ""
             for (const tag of tags) {
                 const newTagDiv = document.createElement("div");
                 const checkbox = document.createElement("input");
@@ -162,7 +162,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
 
-    async function processDomainsData(domainsData) {
+    async function processDomainsData(domainsData, selectedDomain) {
         try {
             const domains = domainsData.records.toSorted((a, b) => {
                 const nameA = a.fields.name.toLowerCase();
@@ -174,21 +174,27 @@ document.addEventListener("DOMContentLoaded", async function () {
             });
 
             for (const domain of domains) {
-                const newDomainDiv = document.createElement("div");
                 const radio = document.createElement("input");
                 radio.type = "radio";
                 radio.name = "domains";
                 radio.value = domain.id;
                 radio.id = domain.id;
+                if (selectedDomain != undefined && selectedDomain != "") {
+                    radio.checked = (domain.id == selectedDomain);
+                }
 
                 const radioLabel = document.createElement('label')
                 radioLabel.htmlFor = domain.id;
                 radioLabel.innerText = domain.fields.name;
 
-                const newline = document.createElement('br');
-                const domainsContainer = document.getElementById('domains');
+                radio.addEventListener("click", async () => {
+                    const tagsData = await getTagsData(domain.fields.name);
+                    await processTagsData(tagsData)
+                })
+
                 domainsContainer.appendChild(radio);
                 domainsContainer.appendChild(radioLabel);
+
                 //domainsContainer.appendChild(newline);
             }
         } catch (error) {
@@ -278,22 +284,20 @@ document.addEventListener("DOMContentLoaded", async function () {
     try {
         addButton.style.display = "none"
         updateButton.style.display = "none"
-
-        let domain;
         const currentTab = await getCurrentTab(); // données de la page
         const pinData = await getPinData(currentTab.url);
-        //
-        if (pinData !== undefined &&  pinData !== "" && pinData.length>0) {
-            if (pinData.records[0].fields.domain[0] != undefined && pinData.fields.domain.length>0) {
-                domain = pinData.records[0].fields.domain[0];
+        const domainsData = await getDomainsData(); // liste de tous les domaines
+
+        let selectedDomain = "";
+        if (pinData.records.length > 0) {
+            if (pinData.records[0].fields.domain.length > 0) {
+                selectedDomain = pinData.records[0].fields.domain_name[0];
             }
         }
-        //
-        const domainsData = await getDomainsData(domain); // liste de tous les domaines
-        await processDomainsData(domainsData); // liste des domaines
+        await processDomainsData(domainsData, selectedDomain);
 
-        const tagsData = await getTagsData(domain);
-        await processTagsData(tagsData); // liste de tous les tags
+        const tagsData = await getTagsData(selectedDomain);
+        await processTagsData(tagsData); // liste de tous les tags du domaine
 
         await processPinData(currentTab, pinData); // récup des données en base ou des données de la page
         //
@@ -309,25 +313,27 @@ document.addEventListener("DOMContentLoaded", async function () {
             let method = ""
             let postData;
 
-            if (action ==="cancel") {
+            if (action === "cancel") {
                 window.close();
                 return null;
             }
             if (action === "add") {
                 method = "POST";
-                postData = { "records" :[{
-                    "fields": {
-                        "name": formData.get("title"),
-                        "rating": formData.get("rating"),
-                        "url": formData.get("url"),
-                        "mini_url": mini_url(formData.get("url")),
-                        "description": formData.get("comment") == undefined ? "" : formData.get("comment"),
-                        "img_url": formData.get("img_url"),
-                        "tag": selectedTags,
-                        "domain": selectedDomains,
-                        "status": "0"
-                    }
-                }]};
+                postData = {
+                    "records": [{
+                        "fields": {
+                            "name": formData.get("title"),
+                            "rating": formData.get("rating"),
+                            "url": formData.get("url"),
+                            "mini_url": mini_url(formData.get("url")),
+                            "description": formData.get("comment") == undefined ? "" : formData.get("comment"),
+                            "img_url": formData.get("img_url"),
+                            "tag": selectedTags,
+                            "domain": selectedDomains,
+                            "status": "0"
+                        }
+                    }]
+                };
             } else if (action === "update") {
                 method = "PATCH";
                 postData = {
@@ -357,15 +363,17 @@ document.addEventListener("DOMContentLoaded", async function () {
                     body: JSON.stringify(postData)
                 });
                 const responseData = await response.json()
-                //console.log("Réponse de la requête POST:", responseData);
-                .then (window.close())
+                    //console.log("Réponse de la requête POST:", responseData);
+                    .then(window.close())
 
 
             } catch (error) {
                 console.error("Error making POST request:", error);
             }
         });
-    } catch (error) {
+    } catch
+        (error) {
         console.error("Error:", error);
     }
-});
+})
+;
