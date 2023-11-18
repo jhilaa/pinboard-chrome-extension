@@ -41,3 +41,18 @@ body {
     height: 100%;
     z-index: 1;
 }
+
+
+input[type="checkbox"] + label {
+    margin-left : 3px;
+    margin-right : 3px;
+}
+
+#buttons_group{
+    display: flex;
+    flex-direction: row;
+}
+
+#domain,div {
+    margin-right: 10px;
+}
