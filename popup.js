@@ -114,7 +114,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
     }
 
-    async function getTagData(domain) {
+    async function getTagsData(domain) {
         try {
             const apiUrl = `https://api.airtable.com/v0/app7zNJoX11DY99UA/Tags `;
             const response = await fetch(apiUrl, {headers});
@@ -220,8 +220,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     async function getPinData(url) {
         try {
             const filterField = 'url';
-            const filterValue = url;
-            const filterFormula = `SEARCH("${filterValue}", {${filterField}})`;
+            const filterValue = "^" + url.replace(/[|\\{}()[\]^$+*?.\/]/g, '\\$&') + "$";
+            const filterFormula = `REGEX_MATCH({${filterField}}, "${filterValue}" )`;
             const apiUrl = `https://api.airtable.com/v0/app7zNJoX11DY99UA/pins?filterByFormula=${encodeURIComponent(filterFormula)}`;
             const response = await fetch(apiUrl, {headers});
             const data = await response.json();
@@ -276,14 +276,25 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     try {
-        const currentTab = await getCurrentTab(); // données de la page
-        //
-        const domainsData = await getDomainsData(); // liste de tous les domaines
-        const tagsData = await getTagData();
-        const pinData = await getPinData(currentTab.url);
+        addButton.style.display = "none"
+        updateButton.style.display = "none"
 
+        let domain;
+        const currentTab = await getCurrentTab(); // données de la page
+        const pinData = await getPinData(currentTab.url);
+        //
+        if (pinData !== undefined &&  pinData !== "" && pinData.length>0) {
+            if (pinData.records[0].fields.domain[0] != undefined && pinData.fields.domain.length>0) {
+                domain = pinData.records[0].fields.domain[0];
+            }
+        }
+        //
+        const domainsData = await getDomainsData(domain); // liste de tous les domaines
         await processDomainsData(domainsData); // liste des domaines
+
+        const tagsData = await getTagsData(domain);
         await processTagsData(tagsData); // liste de tous les tags
+
         await processPinData(currentTab, pinData); // récup des données en base ou des données de la page
         //
         spinnerContainer.style.display = "none";
