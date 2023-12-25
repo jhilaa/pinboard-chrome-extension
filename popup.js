@@ -39,8 +39,16 @@ document.addEventListener("DOMContentLoaded", async function () {
     });
 
     function mini_url(url) {
-        const parsedURL = new URL(url);
-        return parsedURL.hostname.replace(/^www\./, '');
+        let parsedURL ="";
+        try {
+        parsedURL = new URL(url);
+        return parsedURL.hostname.replace(/^www\./, '');}
+        catch {
+            parsedURL.replace(/^https:\/\//, '');
+            parsedURL.replace(/^http\/\//, '');
+            parsedURL.replace(/^www\./, '');
+            return parsedURL
+        }
     }
 
     stars.forEach(star => {
@@ -140,21 +148,23 @@ document.addEventListener("DOMContentLoaded", async function () {
 
             tagsDiv.innerHTML = ""
             for (const tag of tags) {
-                const newTagDiv = document.createElement("div");
-                const checkbox = document.createElement("input");
-                checkbox.type = "checkbox";
-                checkbox.name = "tags";
-                checkbox.value = tag.id;
-                checkbox.id = tag.id;
+                if (tag.fields.name != undefined) {
+                    const newTagDiv = document.createElement("div");
+                    const checkbox = document.createElement("input");
+                    checkbox.type = "checkbox";
+                    checkbox.name = "tags";
+                    checkbox.value = tag.id;
+                    checkbox.id = tag.id;
 
-                const checkboxLabel = document.createElement("label");
-                checkboxLabel.htmlFor = tag.id;
-                checkboxLabel.innerText = tag.fields.name;
+                    const checkboxLabel = document.createElement("label");
+                    checkboxLabel.htmlFor = tag.id;
+                    checkboxLabel.innerText = tag.fields.name;
 
-                newTagDiv.appendChild(checkbox);
-                newTagDiv.appendChild(checkboxLabel);
+                    newTagDiv.appendChild(checkbox);
+                    newTagDiv.appendChild(checkboxLabel);
 
-                tagsDiv.append(newTagDiv)
+                    tagsDiv.append(newTagDiv)
+                }
             }
         } catch (error) {
             console.error("Error handling tab data:", error);
@@ -174,6 +184,9 @@ document.addEventListener("DOMContentLoaded", async function () {
             });
 
             for (const domain of domains) {
+                const radioGroup = document.createElement("div");
+                radioGroup.classList.add("d-flex");
+                radioGroup.classList.add("flex-line");
                 const radio = document.createElement("input");
                 radio.type = "radio";
                 radio.name = "domains";
@@ -189,14 +202,18 @@ document.addEventListener("DOMContentLoaded", async function () {
 
                 radio.addEventListener("click", async () => {
                     const tagsData = await getTagsData(domain.fields.name);
+                    addButton.removeAttribute('disabled');
                     await processTagsData(tagsData)
                 })
 
-                domainsContainer.appendChild(radio);
-                domainsContainer.appendChild(radioLabel);
+                radioGroup.appendChild(radio);
+                radioGroup.appendChild(radioLabel);
+                domainsContainer.appendChild(radioGroup);
 
                 //domainsContainer.appendChild(newline);
             }
+            domainsContainer.classList.add("d-flex");
+            domainsContainer.classList.add("flex-column");
         } catch (error) {
             console.error("Error handling domain data:", error);
         }
@@ -265,7 +282,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 titleInput.value = record.fields.name;
                 urlInput.value = record.fields.mini_url;
                 cardIdInput.value = record.id;
-                commentInput.value = record.fields.description;
+                commentInput.value = (record.fields.description==undefined?"":record.fields.description);
                 imgUrlInput.value = record.fields.img_url;
                 imgElement.src = record.fields.img_url;
                 ratingInput.value = record.fields.rating;

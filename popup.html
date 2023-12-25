@@ -17,20 +17,10 @@
 <div id="content">
     <form id="addForm" >
         <label for="card_id" class="hidden">id:</label>
-        <input id="card_id" name="card_id" class="hidden"/><br>
+        <input id="card_id" name="card_id" class="hidden"/>
 
+        <label for="domains">Domain:</label>
         <fieldset id="domains" class="d-flex flex-row">
-            <!--
-            <div>
-                <input type="radio" id="pinboard" name="domain" value="pinboard" checked />
-                <label for="pinboard">Pinboard</label>
-            </div>
-
-            <div>
-                <input type="radio" id="forgetMeKnot" name="domain" value="forgetMeKnot" />
-                <label for="forgetMeKnot">Forget Me Knot</label>
-            </div>
-            -->
         </fieldset>
 
         <label for="title">Titre:</label>
@@ -45,22 +35,16 @@
         <label for="img_url" style="display: none">Apercu:</label>
         <input id="img_url" name="img_url" type="text" placeholder="url de l'image"/>
         <img id="img" src="./public/blank.png" alt="thumbnail" class="thumbnail"
-             width="600">
+             width="600"><br>
 
-        <input id="rating" name="rating" type="text" style="display: none" rating="0"/>
-        <!--
-        <div id="stars" class="rating position-relative d-flex rounded-pill">
-            <i class="star bi bi-star position-absolute top-50 start-0 translate-middle-y pb-1" data-value="1"></i>
-            <i class="star bi bi-star position-absolute top-50 start-50 translate-middle pb-1" data-value="2"></i>
-            <i class="star bi bi-star position-absolute top-50 end-0 translate-middle-y pb-1" data-value="3"></i>
-        </div>
-        -->
+        <input id="rating" name="rating" type="text" style="display: none" rating="0"/><br>
 
-        <div class="rating position-relative d-flex rounded-pill">
-            <i class="star bi bi-star position-absolute top-50 translate-middle-y pb-1" data-value="1" style="left: 0%;"></i>
-            <i class="star bi bi-star position-absolute top-50 translate-middle-y pb-1" data-value="2" style="left: 25%;"></i>
-            <i class="star bi bi-star position-absolute top-50 translate-middle-y pb-1" data-value="3" style="left: 50%;"></i>
-            <i class="star gold bi bi-star position-absolute top-50 translate-middle-y pb-1" data-value="4" style="left: 75%;"></i>
+
+        <div class="rating p rounded-pill d-flex flex-row">
+            <i class="star bi bi-star " data-value="1" style="left: 0%;"></i>
+            <i class="star bi bi-star " data-value="2" style="left: 25%;"></i>
+            <i class="star bi bi-star " data-value="3" style="left: 50%;"></i>
+            <i class="star gold bi bi-star " data-value="4" style="left: 75%;"></i>
         </div>
 
         <label>Tags:</label><br>
@@ -68,7 +52,7 @@
         <br>
 
         <div id="buttons_group">
-        <button type="submit" id="add" name="action" value="add">Ajouter</button>
+        <button type="submit" id="add" name="action" value="add" disabled>Ajouter</button>
         <button type="submit" id="update" name="action" value="update">Mettre &agrave; jour</button>
         <input type="button" id="cancel" value="Annuler" onclick=""/>
         </div>
