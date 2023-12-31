@@ -18,6 +18,30 @@
         <label for="card_id" class="hidden">id:</label>
         <input id="card_id" name="card_id" class="hidden"/>
 
+        <label for="title">Titre:</label>
+        <textarea rows="2" cols="30" id="title" name="title"></textarea><br>
+
+        <label for="url">Url:</label>
+        <textarea rows="2" cols="30" id="url" name="url"></textarea><br>
+
+        <label for="comment">Vignette:</label>
+        <label for="img_url" style="display: none">Apercu:</label>
+        <input id="img_url" name="img_url" type="text" placeholder="url de l'image"/>
+        <img id="img" src="./public/blank.png" alt="thumbnail" class="thumbnail"
+             width="600"><br>
+        <label for="comment">Description</label>
+        <textarea rows="4" cols="30" id="comment" name="comment"></textarea><br>
+
+        <label for="rating">Note:</label>
+        <input id="rating" name="rating" type="text" style="display: none" rating="0"/><br>
+
+        <div class="rating p rounded-pill d-flex flex-row">
+            <i class="star bi bi-star " data-value="1" style="left: 0%;"></i>
+            <i class="star bi bi-star " data-value="2" style="left: 25%;"></i>
+            <i class="star bi bi-star " data-value="3" style="left: 50%;"></i>
+            <i class="star gold bi bi-star " data-value="4" style="left: 75%;"></i>
+        </div>
+
         <div class="accordion">
             <div class="accordion-item">
                 <div class="accordion-item-header">
@@ -33,51 +57,25 @@
             </div>
             <div class="accordion-item">
                 <div class="accordion-item-header">
-                    Titre :
+                    Groupe :
                 </div>
                 <div class="accordion-item-body">
                     <div class="accordion-item-body-content">
-                        <label for="title">Titre:</label>
-                        <textarea rows="2" cols="30" id="title" name="title"></textarea><br>
-
-                        <label for="url">Url:</label>
-                        <textarea rows="2" cols="30" id="url" name="url"></textarea><br>
+                        <label for="groups">Groupe :</label>
+                        <fieldset id="groups" class="d-flex flex-column">
+                        </fieldset>
                     </div>
                 </div>
             </div>
             <div class="accordion-item">
                 <div class="accordion-item-header">
-                    Description :
+                    Tags :
                 </div>
                 <div class="accordion-item-body">
                     <div class="accordion-item-body-content">
-                        <label for="comment">Note:</label>
-                        <label for="img_url" style="display: none">Apercu:</label>
-                        <input id="img_url" name="img_url" type="text" placeholder="url de l'image"/>
-                        <img id="img" src="./public/blank.png" alt="thumbnail" class="thumbnail"
-                             width="600"><br>
-                        <textarea rows="4" cols="30" id="comment" name="comment"></textarea><br>
-                    </div>
-                </div>
-            </div>
-            <div class="accordion-item">
-                <div class="accordion-item-header">
-                    Note :
-                </div>
-                <div class="accordion-item-body">
-                    <div class="accordion-item-body-content">
-
-                        <input id="rating" name="rating" type="text" style="display: none" rating="0"/><br>
-
-                        <div class="rating p rounded-pill d-flex flex-row">
-                            <i class="star bi bi-star " data-value="1" style="left: 0%;"></i>
-                            <i class="star bi bi-star " data-value="2" style="left: 25%;"></i>
-                            <i class="star bi bi-star " data-value="3" style="left: 50%;"></i>
-                            <i class="star gold bi bi-star " data-value="4" style="left: 75%;"></i>
-                        </div>
-
-                        <label>Tags:</label><br>
-                        <div class="tags" id="tags"></div>
+                        <label for="tags">Groupe :</label>
+                        <fieldset id="tags" class="d-flex flex-column">
+                        </fieldset>
                     </div>
                 </div>
             </div>

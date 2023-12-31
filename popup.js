@@ -13,6 +13,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const imgUrl = document.getElementById('img_url');
     const domainsContainer = document.getElementById('domains');
     const tagsDiv = document.getElementById("tags");
+    const groupsDiv = document.getElementById("groups");
 
     const content = document.getElementById("content");
     content.style.display = "block";
@@ -135,6 +136,18 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
     }
 
+    async function getGroupsData(domain) {
+        try {
+            const apiUrl = `https://api.airtable.com/v0/app7zNJoX11DY99UA/Groups?filterByFormula=` + encodeURIComponent(`AND({domain_name}="` + domain + `")`);
+            const response = await fetch(apiUrl, {headers});
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error("Error fetching data from the database:", error);
+            throw error;
+        }
+    }
+
     async function processTagsData(tagsData) {
         try {
             const tags = tagsData.records.toSorted((a, b) => {
@@ -164,6 +177,42 @@ document.addEventListener("DOMContentLoaded", async function () {
                     newTagDiv.appendChild(checkboxLabel);
 
                     tagsDiv.append(newTagDiv)
+                }
+            }
+        } catch (error) {
+            console.error("Error handling tab data:", error);
+        }
+    }
+
+    async function processGroupsData(groupsData) {
+        try {
+            const groups = groupsData.records.toSorted((a, b) => {
+                const nameA = a.fields.name.toLowerCase();
+                const nameB = b.fields.name.toLowerCase();
+
+                if (nameA < nameB) return -1;
+                if (nameA > nameB) return 1;
+                return 0;
+            });
+
+            groupsDiv.innerHTML = ""
+            for (const group of groups) {
+                if (group.fields.name != undefined) {
+                    const newGroupDiv = document.createElement("div");
+                    const checkbox = document.createElement("input");
+                    checkbox.type = "checkbox";
+                    checkbox.name = "groups";
+                    checkbox.value = group.id;
+                    checkbox.id = group.id;
+
+                    const checkboxLabel = document.createElement("label");
+                    checkboxLabel.htmlFor = group.id;
+                    checkboxLabel.innerText = group.fields.name;
+
+                    newGroupDiv.appendChild(checkbox);
+                    newGroupDiv.appendChild(checkboxLabel);
+
+                    groupsDiv.append(newGroupDiv)
                 }
             }
         } catch (error) {
@@ -202,8 +251,10 @@ document.addEventListener("DOMContentLoaded", async function () {
 
                 radio.addEventListener("click", async () => {
                     const tagsData = await getTagsData(domain.fields.name);
+                    const groupsData = await getGroupsData(domain.fields.name);
                     addButton.removeAttribute('disabled');
                     await processTagsData(tagsData)
+                    await processGroupsData(groupsData)
                 })
 
                 radioGroup.appendChild(radio);
@@ -315,6 +366,8 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         const tagsData = await getTagsData(selectedDomain);
         await processTagsData(tagsData); // liste de tous les tags du domaine
+        const groupsData = await getGroupsData(selectedDomain);
+        await processGroupsData(groupsData); // liste de tous les tags du domaine
 
         await processPinData(currentTab, pinData); // récup des données en base ou des données de la page
         //
