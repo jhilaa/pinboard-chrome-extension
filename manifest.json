@@ -20,9 +20,9 @@
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "icone16.png",
-      "48": "icone48.png",
-      "128": "icone128.png"
+      "16": "./public/icone16.png",
+      "48": "./public/icone48.png",
+      "128": "./public/icone128.png"
     }
   },
   "content_scripts": [
@@ -37,8 +37,8 @@
     }
   ],
   "icons": {
-    "16": "icone16.png",
-    "48": "icone48.png",
-    "128": "icone128.png"
+    "16": "./public/icone16.png",
+    "48": "./public/icone48.png",
+    "128": "./public/icone128.png"
   }
 }

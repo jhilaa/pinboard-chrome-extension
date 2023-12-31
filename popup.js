@@ -280,7 +280,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             } else {
                 const record = pinData.records[0];
                 titleInput.value = record.fields.name;
-                urlInput.value = record.fields.mini_url;
+                urlInput.value = record.fields.url;
                 cardIdInput.value = record.id;
                 commentInput.value = (record.fields.description==undefined?"":record.fields.description);
                 imgUrlInput.value = record.fields.img_url;
@@ -392,5 +392,31 @@ document.addEventListener("DOMContentLoaded", async function () {
         (error) {
         console.error("Error:", error);
     }
+
+    const accordionItemHeaders = document.querySelectorAll(".accordion-item-header");
+
+    accordionItemHeaders.forEach(accordionItemHeader => {
+        accordionItemHeader.addEventListener("click", event => {
+
+            // Uncomment in case you only want to allow for the display of only one collapsed item at a time!
+
+             const currentlyActiveAccordionItemHeader = document.querySelector(".accordion-item-header.active");
+             if(currentlyActiveAccordionItemHeader && currentlyActiveAccordionItemHeader!==accordionItemHeader) {
+               currentlyActiveAccordionItemHeader.classList.toggle("active");
+               currentlyActiveAccordionItemHeader.nextElementSibling.style.maxHeight = 0;
+             }
+
+            accordionItemHeader.classList.toggle("active");
+            const accordionItemBody = accordionItemHeader.nextElementSibling;
+            if(accordionItemHeader.classList.contains("active")) {
+                accordionItemBody.style.maxHeight = accordionItemBody.scrollHeight + "px";
+            }
+            else {
+                accordionItemBody.style.maxHeight = 0;
+            }
+
+        });
+    });
+
 })
 ;
