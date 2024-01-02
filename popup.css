@@ -6,6 +6,12 @@ body {
     font-weight: 15;
     line-height: 1.1em;
     color: #999;
+    min-width:500px;
+}
+
+#addForm {
+    display: flex;
+    flex-direction: column;
 }
 
 #img {
@@ -103,8 +109,10 @@ input[type="checkbox"] + label {
     border-image: linear-gradient(to right, transparent, #34495e, transparent) 1;
 }
 
+/*
 @media(max-width:767px) {
     html {
         font-size: 14px;
     }
 }
+ */

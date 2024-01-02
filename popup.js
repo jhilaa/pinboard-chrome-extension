@@ -254,7 +254,8 @@ document.addEventListener("DOMContentLoaded", async function () {
                     const groupsData = await getGroupsData(domain.fields.name);
                     addButton.removeAttribute('disabled');
                     await processTagsData(tagsData)
-                    await processGroupsData(groupsData)
+                    //await processGroupsData(groupsData)
+                    await createGroupTree(groupsData)
                 })
 
                 radioGroup.appendChild(radio);
@@ -269,6 +270,55 @@ document.addEventListener("DOMContentLoaded", async function () {
             console.error("Error handling domain data:", error);
         }
     }
+
+    /**********************/
+    function createGroupTree(groupsData) {
+        function trouverFils(array, parent) {
+            let children = [];
+            if (Array.isArray(array)) {
+                array.forEach(record => {
+                    const fields = record.fields;
+                    if (Array.isArray(fields.Group) && fields.Group.length > 0) {
+                        if (parent == fields.Group[0]) {
+                            children.push({
+                                id: record.id,
+                                text: fields.name,
+                                children: trouverFils(array, record.id)
+                            });
+                        }
+                    }
+                });
+            }
+            return children;
+        }
+
+        try {
+            let result = trouverFils(groupsData.records, "recqhM5UDTNnUVvaL");
+            let groupCheckboxesList = document.getElementById("groups");
+            groupCheckboxesList.innerHTML = "";
+            tree = new Tree('#groups', {
+                data: result,
+                closeDepth: 3,
+                loaded: function () {
+                    this.values = [];
+                    this.disables = [];
+                },
+                onChange: function () {
+
+                    //await filterPinsAnd();
+                    //filterPins();
+                    //countPinsByTag();
+                    //countPinsByUrl();
+                    //countPins();
+
+                }
+            });
+        } catch (error) {
+            console.error("Error fetching or processing data:", error);
+        }
+    }
+
+    /********************/
 
     async function getThumbnail(url) {
         try {
@@ -367,7 +417,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         const tagsData = await getTagsData(selectedDomain);
         await processTagsData(tagsData); // liste de tous les tags du domaine
         const groupsData = await getGroupsData(selectedDomain);
-        await processGroupsData(groupsData); // liste de tous les tags du domaine
+        //await processGroupsData(groupsData); // liste de tous les tags du domaine
+        await createGroupTree(groupsData); // liste de tous les tags du domaine
 
         await processPinData(currentTab, pinData); // récup des données en base ou des données de la page
         //
