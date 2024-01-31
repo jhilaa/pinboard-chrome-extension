@@ -13,12 +13,14 @@ document.addEventListener("DOMContentLoaded", async function () {
     const imgUrl = document.getElementById('img_url');
     const domainsContainer = document.getElementById('domains');
     const tagsDiv = document.getElementById("tags");
+    const content = document.getElementById("content");
+    const spinnerContainer = document.getElementById("spinnerContainer");
     let checkedGroups;
 
-    const content = document.getElementById("content");
     content.style.display = "block";
-    const spinnerContainer = document.getElementById("spinnerContainer");
 
+    //***** méthodes ***************
+    // evenement sur le champ adresse
     if (document.querySelector('input[name="domain"]')) {
         document.querySelectorAll('input[name="domain"]').forEach((elem) => {
             elem.addEventListener("change", function (event) {
@@ -28,17 +30,34 @@ document.addEventListener("DOMContentLoaded", async function () {
         });
     }
 
+    // evenement sur le zone de saisie image
     imgUrl.addEventListener("input", (e) => {
         e.preventDefault();
         const imgElement = document.getElementById("img")
         imgElement.src = imgUrl.value;
     })
 
+    // événement sur le bouton annuler
     cancelButton.addEventListener("click", function () {
         // Close the popup window
         window.close();
     });
 
+    // événement sur les étoiles
+    stars.forEach(star => {
+        star.addEventListener('click', () => {
+            let old_value = parseInt(rating.value);
+            let new_value = parseInt(star.getAttribute('data-value'));
+
+            if (old_value == 1 && new_value == 1) {
+                new_value = 0;
+            }
+            rating.value = new_value;
+            updateStars(old_value, new_value);
+        });
+    });
+
+    //***** méthodes ***************
     function mini_url(url) {
         let parsedURL = "";
         try {
@@ -64,22 +83,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         });
     }
 
-    stars.forEach(star => {
-        star.addEventListener('click', () => {
-
-
-            let old_value = parseInt(rating.value);
-            let new_value = parseInt(star.getAttribute('data-value'));
-
-            if (old_value == 1 && new_value == 1) {
-                new_value = 0;
-            }
-            rating.value = new_value;
-            updateStars(old_value, new_value);
-        });
-    });
-
-
+    // récup de l'url et de la miniature pour l'onglet en cours
     async function getCurrentTab() {
         return new Promise((resolve, reject) => {
             const queryOptions = {active: true, currentWindow: true};
@@ -92,7 +96,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 }
             });
         });
-    }
+    };
 
     async function getThumbnail(url) {
         try {
@@ -115,64 +119,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
     }
 
-    //
-    async function getPinData(url) {
-        try {
-            const filterField = 'url';
-            const filterValue = "^" + url.replace(/[|\\{}()[\]^$+*?.\/]/g, '\\$&') + "$";
-            const filterFormula = `REGEX_MATCH({${filterField}}, "${filterValue}" )`;
-            const apiUrl = `https://api.airtable.com/v0/app7zNJoX11DY99UA/pins?filterByFormula=${encodeURIComponent(filterFormula)}`;
-            const response = await fetch(apiUrl, {headers});
-            const data = await response.json();
-            return data;
-        } catch (error) {
-            console.error("Error fetching data from the database:", error);
-            throw error;
-        }
-    }
-
-    async function processPinData(currentTab, pinData) {
-        try {
-            const cardIdInput = document.getElementById("card_id");
-            const titleInput = document.getElementById("title");
-            const urlInput = document.getElementById("url");
-            const commentInput = document.getElementById("comment");
-            const imgUrlInput = document.getElementById("img_url");
-            const imgElement = document.getElementById("img");
-            const ratingInput = document.getElementById("rating");
-
-            titleInput.value = currentTab.title;
-            urlInput.value = currentTab.url;
-
-            if (pinData.records.length === 0) {
-                commentInput.value = "";
-                const thumbnailUrl = await getThumbnail(currentTab.url);
-                imgUrlInput.value = thumbnailUrl;
-                imgElement.src = thumbnailUrl;
-                ratingInput.value = "0";
-                //
-                addButton.style.display = "block"
-                updateButton.style.display = "none"
-            } else {
-                const record = pinData.records[0];
-                titleInput.value = record.fields.name;
-                urlInput.value = record.fields.url;
-                cardIdInput.value = record.id;
-                commentInput.value = (record.fields.description == undefined ? "" : record.fields.description);
-                imgUrlInput.value = record.fields.img_url;
-                imgElement.src = record.fields.img_url;
-                ratingInput.value = record.fields.rating;
-                updateStars(0, record.fields.rating);
-                //
-                addButton.style.display = "none"
-                updateButton.style.display = "block"
-
-            }
-        } catch (error) {
-            console.error("Error handling tab data:", error);
-        }
-    }
-
+    // info domaines pour construire les radiobouton
     async function getDomainsData() {
         try {
             const apiUrl = `https://api.airtable.com/v0/app7zNJoX11DY99UA/Domains`;
@@ -184,7 +131,6 @@ document.addEventListener("DOMContentLoaded", async function () {
             throw error;
         }
     }
-
     async function processDomainsData(domainsData, selectedDomain) {
         try {
             const domains = domainsData.records.toSorted((a, b) => {
@@ -233,7 +179,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             console.error("Error handling domain data:", error);
         }
     }
-
+    // info tags pour construire les checkbox
     async function getTagsData(domain) {
         try {
             const apiUrl = `https://api.airtable.com/v0/app7zNJoX11DY99UA/Tags?filterByFormula=` + encodeURIComponent(`AND({domain_name}="` + domain + `")`);
@@ -245,7 +191,6 @@ document.addEventListener("DOMContentLoaded", async function () {
             throw error;
         }
     }
-
     async function processTagsData(tagsData, selectedTags) {
         try {
             const tags = tagsData.records.toSorted((a, b) => {
@@ -283,7 +228,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             console.error("Error handling tab data:", error);
         }
     }
-
+    // info groups pour construire les radiobutton
     async function getGroupsData(domain) {
         try {
             const apiUrl = `https://api.airtable.com/v0/app7zNJoX11DY99UA/Groups?filterByFormula=` + encodeURIComponent(`AND({domain_name}="` + domain + `")`);
@@ -295,7 +240,6 @@ document.addEventListener("DOMContentLoaded", async function () {
             throw error;
         }
     }
-
     async function processGroupsData(groupsData, selectedGroups) {
         function trouverFils(array, parent) {
             let children = [];
@@ -317,7 +261,6 @@ document.addEventListener("DOMContentLoaded", async function () {
             }
             return children;
         }
-
         try {
             let result = trouverFils(groupsData.records, "recqhM5UDTNnUVvaL");
             let groupCheckboxesList = document.getElementById("groups");
@@ -335,7 +278,62 @@ document.addEventListener("DOMContentLoaded", async function () {
             console.error("Error fetching or processing data:", error);
         }
     }
+    // récup de la fiche correspondant à l'url
+    async function getPinData(url) {
+        try {
+            const filterField = 'url';
+            const filterValue = "^" + url.replace(/[|\\{}()[\]^$+*?.\/]/g, '\\$&') + "$";
+            const filterFormula = `REGEX_MATCH({${filterField}}, "${filterValue}" )`;
+            const apiUrl = `https://api.airtable.com/v0/app7zNJoX11DY99UA/pins?filterByFormula=${encodeURIComponent(filterFormula)}`;
+            const response = await fetch(apiUrl, {headers});
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error("Error fetching data from the database:", error);
+            throw error;
+        }
+    }
+    async function processPinData(currentTab, pinData) {
+        try {
+            const cardIdInput = document.getElementById("card_id");
+            const titleInput = document.getElementById("title");
+            const urlInput = document.getElementById("url");
+            const commentInput = document.getElementById("comment");
+            const imgUrlInput = document.getElementById("img_url");
+            const imgElement = document.getElementById("img");
+            const ratingInput = document.getElementById("rating");
 
+            titleInput.value = currentTab.title;
+            urlInput.value = currentTab.url;
+
+            if (pinData.records.length === 0) {
+                commentInput.value = "";
+                const thumbnailUrl = await getThumbnail(currentTab.url);
+                imgUrlInput.value = thumbnailUrl;
+                imgElement.src = thumbnailUrl;
+                ratingInput.value = "0";
+                //
+                addButton.style.display = "block"
+                updateButton.style.display = "none"
+            } else {
+                const record = pinData.records[0];
+                titleInput.value = record.fields.name;
+                urlInput.value = record.fields.url;
+                cardIdInput.value = record.id;
+                commentInput.value = (record.fields.description == undefined ? "" : record.fields.description);
+                imgUrlInput.value = record.fields.img_url;
+                imgElement.src = record.fields.img_url;
+                ratingInput.value = record.fields.rating;
+                updateStars(0, record.fields.rating);
+                //
+                addButton.style.display = "none"
+                updateButton.style.display = "block"
+
+            }
+        } catch (error) {
+            console.error("Error handling tab data:", error);
+        }
+    }
     async function getSelectedDomain(pinData) {
         if (pinData.records.length > 0) {
             if (pinData.records[0].fields.domain_name != undefined) {
@@ -346,7 +344,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
         return "";
     }
-
     async function getSelectedTags(pinData) {
         if (pinData.records.length > 0) {
             if (pinData.records[0].fields.tags_name != undefined) {
@@ -357,7 +354,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
         return "";
     }
-
     async function getSelectedGroups(pinData) {
         if (pinData.records.length > 0) {
             if (pinData.records[0].fields.groups_name != undefined) {
@@ -456,9 +452,9 @@ document.addEventListener("DOMContentLoaded", async function () {
                     },
                     body: JSON.stringify(postData)
                 });
-                const responseData = await response.json()
+                //const responseData = await response.json()
                     //console.log("Réponse de la requête POST:", responseData);
-                    .then(window.close())
+                    //.then(window.close())
 
 
             } catch (error) {

@@ -6,8 +6,13 @@
     "storage",
     "tabs",
     "activeTab",
-    "cookies"
+    "cookies",
+    "sidePanel"
   ],
+  "side_panel": {
+    "default_path": "popup.html"
+  },
+
   "host_permissions": [
     "http://localhost:8080/"
   ],
@@ -25,17 +30,6 @@
       "128": "./public/icone128.png"
     }
   },
-  "content_scripts": [
-    {
-      "matches": [
-        "<all_urls>"
-      ],
-      "js": [
-        "content.js"
-      ],
-      "run_at": "document_end"
-    }
-  ],
   "icons": {
     "16": "./public/icone16.png",
     "48": "./public/icone48.png",
