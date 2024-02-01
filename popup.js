@@ -19,7 +19,9 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     content.style.display = "block";
 
-    //***** méthodes ***************
+    //*********************************
+    //***** Evenements  ***************
+    //*********************************
     // evenement sur le champ adresse
     if (document.querySelector('input[name="domain"]')) {
         document.querySelectorAll('input[name="domain"]').forEach((elem) => {
@@ -53,12 +55,29 @@ document.addEventListener("DOMContentLoaded", async function () {
                 new_value = 0;
             }
             rating.value = new_value;
-            updateStars(old_value, new_value);
+            updateStars(0, new_value);
         });
+    })
+
+    //*********************************
+    //**** evenement sur les onglets **
+    //*********************************
+    chrome.runtime.onMessage.addListener(async function (message, sender, sendResponse) {
+        if (message.action === "updateUrl") {
+            const tab = message.tab
+            const url = tab.url;
+            const title = tab.title;
+            const pinData = await getPinData(url);
+            await processPinData(tab, pinData); // récup des données en base ou des données de la page
+            //
+            await createFormItems(pinData)
+        }
     });
 
-    //***** méthodes ***************
-    function mini_url(url) {
+    //*********************************
+    //***** Méthodes    ***************
+    //*********************************
+    function getMiniUrl(url) {
         let parsedURL = "";
         try {
             parsedURL = new URL(url);
@@ -83,7 +102,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         });
     }
 
-    // récup de l'url et de la miniature pour l'onglet en cours
+    //************************************
+    //***** Construction de side page  ***
+    //************************************
     async function getCurrentTab() {
         return new Promise((resolve, reject) => {
             const queryOptions = {active: true, currentWindow: true};
@@ -131,6 +152,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             throw error;
         }
     }
+
     async function processDomainsData(domainsData, selectedDomain) {
         try {
             const domains = domainsData.records.toSorted((a, b) => {
@@ -141,7 +163,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 if (nameA > nameB) return 1;
                 return 0;
             });
-
+            domainsContainer.innerHTML = ""
             for (const domain of domains) {
                 const radioGroup = document.createElement("div");
                 radioGroup.classList.add("d-flex");
@@ -179,6 +201,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             console.error("Error handling domain data:", error);
         }
     }
+
     // info tags pour construire les checkbox
     async function getTagsData(domain) {
         try {
@@ -191,6 +214,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             throw error;
         }
     }
+
     async function processTagsData(tagsData, selectedTags) {
         try {
             const tags = tagsData.records.toSorted((a, b) => {
@@ -228,6 +252,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             console.error("Error handling tab data:", error);
         }
     }
+
     // info groups pour construire les radiobutton
     async function getGroupsData(domain) {
         try {
@@ -240,6 +265,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             throw error;
         }
     }
+
     async function processGroupsData(groupsData, selectedGroups) {
         function trouverFils(array, parent) {
             let children = [];
@@ -261,6 +287,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             }
             return children;
         }
+
         try {
             let result = trouverFils(groupsData.records, "recqhM5UDTNnUVvaL");
             let groupCheckboxesList = document.getElementById("groups");
@@ -278,6 +305,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             console.error("Error fetching or processing data:", error);
         }
     }
+
     // récup de la fiche correspondant à l'url
     async function getPinData(url) {
         try {
@@ -293,6 +321,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             throw error;
         }
     }
+
     async function processPinData(currentTab, pinData) {
         try {
             const cardIdInput = document.getElementById("card_id");
@@ -312,6 +341,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 imgUrlInput.value = thumbnailUrl;
                 imgElement.src = thumbnailUrl;
                 ratingInput.value = "0";
+                updateStars(0, 0);
                 //
                 addButton.style.display = "block"
                 updateButton.style.display = "none"
@@ -334,6 +364,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             console.error("Error handling tab data:", error);
         }
     }
+
     async function getSelectedDomain(pinData) {
         if (pinData.records.length > 0) {
             if (pinData.records[0].fields.domain_name != undefined) {
@@ -344,6 +375,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
         return "";
     }
+
     async function getSelectedTags(pinData) {
         if (pinData.records.length > 0) {
             if (pinData.records[0].fields.tags_name != undefined) {
@@ -354,6 +386,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
         return "";
     }
+
     async function getSelectedGroups(pinData) {
         if (pinData.records.length > 0) {
             if (pinData.records[0].fields.groups_name != undefined) {
@@ -365,30 +398,34 @@ document.addEventListener("DOMContentLoaded", async function () {
         return "";
     }
 
-    //
-
-    /**********************/
-    try {
-        addButton.style.display = "none"
-        updateButton.style.display = "none"
-        const currentTab = await getCurrentTab(); // données de la page
-        const pinData = await getPinData(currentTab.url);
-        await processPinData(currentTab, pinData); // récup des données en base ou des données de la page
-
-        const selectedDomain = await getSelectedDomain(pinData);
-        const selectedGroups = await getSelectedGroups(pinData);
-        const selectedTags = await getSelectedTags(pinData);
-
+    async function createFormItems(pinData) {
         const domainsData = await getDomainsData(); // liste de tous les domaines
+        const selectedDomain = await getSelectedDomain(pinData);
         await processDomainsData(domainsData, selectedDomain);
-
+        //
         const tagsData = await getTagsData(selectedDomain);
+        const selectedTags = await getSelectedTags(pinData);
         await processTagsData(tagsData, selectedTags); // liste de tous les tags du domaine
-
+        //
         const groupsData = await getGroupsData(selectedDomain);
+        const selectedGroups = await getSelectedGroups(pinData);
         await processGroupsData(groupsData, selectedGroups);
         //
         spinnerContainer.style.display = "none";
+    }
+
+
+    /**********************/
+    try {
+        spinnerContainer.style.display = "block";
+        addButton.style.display = "none"
+        updateButton.style.display = "none"
+        //
+        const currentTab = await getCurrentTab(); // données de la page
+        const pinData = await getPinData(currentTab.url);
+        await processPinData(currentTab, pinData); // récup des données en base ou des données de la page
+        //
+        await createFormItems(pinData)
         // submit
         form.addEventListener("submit", async function (event) {
             event.preventDefault();
@@ -396,7 +433,6 @@ document.addEventListener("DOMContentLoaded", async function () {
             const formData = new FormData(form);
             const selectedTags = formData.getAll("tags");
             const selectedDomains = formData.getAll("domains");
-            const selectedGroups = formData.getAll("groups");
             const action = event.submitter ? event.submitter.value : null;
             let method = ""
             let postData;
@@ -413,7 +449,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                             "name": formData.get("title"),
                             "rating": formData.get("rating"),
                             "url": formData.get("url"),
-                            "mini_url": mini_url(formData.get("url")),
+                            "mini_url": getMiniUrl(formData.get("url")),
                             "description": formData.get("comment") == undefined ? "" : formData.get("comment"),
                             "img_url": formData.get("img_url"),
                             "tags": selectedTags,
@@ -432,7 +468,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                             "name": formData.get("title"),
                             "rating": formData.get("rating"),
                             "url": formData.get("url"),
-                            "mini_url": mini_url(formData.get("url")),
+                            "mini_url": getMiniUrl(formData.get("url")),
                             "description": formData.get("comment"),
                             "img_url": formData.get("img_url"),
                             "tags": selectedTags,
@@ -442,6 +478,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                     }]
                 }
             }
+            window.close();
 
             try {
                 const response = await fetch("https://api.airtable.com/v0/app7zNJoX11DY99UA/Pins", {
@@ -453,8 +490,8 @@ document.addEventListener("DOMContentLoaded", async function () {
                     body: JSON.stringify(postData)
                 });
                 //const responseData = await response.json()
-                    //console.log("Réponse de la requête POST:", responseData);
-                    //.then(window.close())
+                //console.log("Réponse de la requête POST:", responseData);
+                //.then(window.close())
 
 
             } catch (error) {
@@ -467,12 +504,9 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     const accordionItemHeaders = document.querySelectorAll(".accordion-item-header");
-
     accordionItemHeaders.forEach(accordionItemHeader => {
         accordionItemHeader.addEventListener("click", event => {
-
             // Uncomment in case you only want to allow for the display of only one collapsed item at a time!
-
             const currentlyActiveAccordionItemHeader = document.querySelector(".accordion-item-header.active");
             if (currentlyActiveAccordionItemHeader && currentlyActiveAccordionItemHeader !== accordionItemHeader) {
                 currentlyActiveAccordionItemHeader.classList.toggle("active");
@@ -489,6 +523,5 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         });
     });
-
 })
 ;

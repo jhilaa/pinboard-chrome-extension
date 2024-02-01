@@ -23,7 +23,8 @@ chrome.tabs.onActivated.addListener(function(activeInfo) {
         console.log("Current URL in active tab: " + url);
 
         // Envoie un message à la pop-up avec l'URL de l'onglet actif
-        chrome.runtime.sendMessage({ action: "updateUrl", url: url });
+        //chrome.runtime.sendMessage({ action: "updateUrl", url: url });
+        chrome.runtime.sendMessage({ action: "updateUrl", tab: tab });
     });
 });
 
