@@ -18,11 +18,14 @@
         <div class="accordion accordion-flush" id="accordionFlushExample">
             <div class="accordion-item">
                 <h2 class="accordion-header" id="flush-headingOne">
-                    <button id="accordion-button-description" class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapse-description" aria-expanded="true" aria-controls="flush-collapse-description">
+                    <button id="accordion-button-description" class="accordion-button" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#flush-collapse-description" aria-expanded="true"
+                            aria-controls="flush-collapse-description">
                         Description :
                     </button>
                 </h2>
-                <div id="flush-collapse-description" class="accordion-collapse collapse show" aria-labelledby="flush-headingOne" data-bs-parent="#accordionFlushExample">
+                <div id="flush-collapse-description" class="accordion-collapse collapse show"
+                     aria-labelledby="flush-headingOne" data-bs-parent="#accordionFlushExample">
                     <div class="accordion-body">
                         <input id="card_id" name="card_id" class="hidden"/>
                         <label for="title">Titre:</label>
@@ -36,63 +39,78 @@
                              width="600">
                         <label for="comment">Commentaire:</label>
                         <textarea rows="4" cols="30" id="comment" name="comment" placeholder="Description"></textarea>
-                        <label for="rating">Note:</label>
-                        <input id="rating" name="rating" type="text" style="display: none" rating="0"/>
-                        <div class="rating p rounded-pill d-flex flex-row">
-                            <i class="star bi bi-star " data-value="1" style="left: 0%;"></i>
-                            <i class="star bi bi-star " data-value="2" style="left: 25%;"></i>
-                            <i class="star bi bi-star " data-value="3" style="left: 50%;"></i>
-                            <i class="star gold bi bi-star " data-value="4" style="left: 75%;"></i>
+                        <div id="status-block">
+                            <label for="status">Statut:</label>
+                            <input id="status" name="status" type="checkbox" />
+                        </div>
+                        <div id="rating-block">
+                            <label for="rating">Note:</label>
+                            <input id="rating" name="rating" type="text" style="display: none" rating="0"/>
+                            <div class="rating p rounded-pill d-flex flex-row">
+                                <i class="star bi bi-star " data-value="1" style="left: 0%;"></i>
+                                <i class="star bi bi-star " data-value="2" style="left: 25%;"></i>
+                                <i class="star bi bi-star " data-value="3" style="left: 50%;"></i>
+                                <i class="star gold bi bi-star " data-value="4" style="left: 75%;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="flush-headingTwo">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#flush-collapse-domain" aria-expanded="false"
+                                aria-controls="flush-collapse-domain">
+                            Domaine :
+                        </button>
+                    </h2>
+                    <div id="flush-collapse-domain" class="accordion-collapse collapse"
+                         aria-labelledby="flush-headingTwo" data-bs-parent="#accordionFlushExample">
+                        <div class="accordion-body">
+                            <fieldset id="domains" class="d-flex flex-row">
+                            </fieldset>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="flush-headingThree">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#flush-collapse-groups" aria-expanded="false"
+                                aria-controls="flush-collapse-groups">
+                            Groupe :
+                        </button>
+                    </h2>
+                    <div id="flush-collapse-groups" class="accordion-collapse collapse"
+                         aria-labelledby="flush-headingThree" data-bs-parent="#accordionFlushExample">
+                        <div class="accordion-body">
+                            <fieldset id="groups" class="d-flex flex-column">
+                            </fieldset>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="flush-headingFour">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#flush-collapse-tags" aria-expanded="false"
+                                aria-controls="flush-collapse-tags">
+                            Tags :
+                        </button>
+                    </h2>
+                    <div id="flush-collapse-tags" class="accordion-collapse collapse"
+                         aria-labelledby="flush-headingThree" data-bs-parent="#accordionFlushExample">
+                        <div class="accordion-body">
+                            <label for="tags">Tags :</label>
+                            <fieldset id="tags" class="d-flex flex-column">
+                            </fieldset>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="flush-headingTwo">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapse-domain" aria-expanded="false" aria-controls="flush-collapse-domain">
-                        Domaine :
-                    </button>
-                </h2>
-                <div id="flush-collapse-domain" class="accordion-collapse collapse" aria-labelledby="flush-headingTwo" data-bs-parent="#accordionFlushExample">
-                    <div class="accordion-body">
-                        <fieldset id="domains" class="d-flex flex-row">
-                        </fieldset>
-                    </div>
-                </div>
+            <div id="buttons_group">
+                <button type="submit" id="add" name="action" value="add" disabled>Ajouter</button>
+                <button type="submit" id="update" name="action" value="update">Mettre &agrave; jour</button>
+                <input type="button" id="cancel" value="Annuler" onclick=""/>
             </div>
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="flush-headingThree">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapse-groups" aria-expanded="false" aria-controls="flush-collapse-groups">
-                        Groupe :
-                    </button>
-                </h2>
-                <div id="flush-collapse-groups" class="accordion-collapse collapse" aria-labelledby="flush-headingThree" data-bs-parent="#accordionFlushExample">
-                    <div class="accordion-body">
-                        <fieldset id="groups" class="d-flex flex-column">
-                        </fieldset>
-                    </div>
-                </div>
-            </div>
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="flush-headingFour">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapse-tags" aria-expanded="false" aria-controls="flush-collapse-tags">
-                        Tags :
-                    </button>
-                </h2>
-                <div id="flush-collapse-tags" class="accordion-collapse collapse" aria-labelledby="flush-headingThree" data-bs-parent="#accordionFlushExample">
-                    <div class="accordion-body">
-                        <label for="tags">Tags :</label>
-                        <fieldset id="tags" class="d-flex flex-column">
-                        </fieldset>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div id="buttons_group">
-            <button type="submit" id="add" name="action" value="add" disabled>Ajouter</button>
-            <button type="submit" id="update" name="action" value="update">Mettre &agrave; jour</button>
-            <input type="button" id="cancel" value="Annuler" onclick=""/>
         </div>
     </form>
 </div>

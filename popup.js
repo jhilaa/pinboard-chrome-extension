@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     const stars = document.querySelectorAll('.star');
     const form = document.getElementById("addForm");
+    const status = document.getElementById('status');
     const rating = document.getElementById('rating');
     const cancelButton = document.getElementById('cancel');
     const addButton = document.getElementById('add');
@@ -331,6 +332,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             const imgUrlInput = document.getElementById("img_url");
             const imgElement = document.getElementById("img");
             const ratingInput = document.getElementById("rating");
+            const statusInput = document.getElementById("status");
 
             titleInput.value = currentTab.title;
             urlInput.value = currentTab.url;
@@ -354,6 +356,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 imgUrlInput.value = record.fields.img_url;
                 imgElement.src = record.fields.img_url;
                 ratingInput.value = record.fields.rating;
+                statusInput.checked = record.fields.status=="1"
                 updateStars(0, record.fields.rating);
                 //
                 addButton.style.display = "none"
@@ -455,7 +458,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                             "tags": selectedTags,
                             "domain": selectedDomains,
                             "groups": checkedGroups,
-                            "status": "0"
+                            "status": formData.get("status") === "on" ? "1" : "0"
                         }
                     }]
                 };
@@ -471,14 +474,16 @@ document.addEventListener("DOMContentLoaded", async function () {
                             "mini_url": getMiniUrl(formData.get("url")),
                             "description": formData.get("comment"),
                             "img_url": formData.get("img_url"),
+                            "status": formData.get("status"),
                             "tags": selectedTags,
                             "domain": selectedDomains,
                             "groups": checkedGroups,
+                            "status": formData.get("status") === "on" ? "1" : "0"
                         }
                     }]
                 }
             }
-            window.close();
+           // window.close();
 
             try {
                 const response = await fetch("https://api.airtable.com/v0/app7zNJoX11DY99UA/Pins", {
