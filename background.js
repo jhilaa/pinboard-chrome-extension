@@ -1,48 +1,51 @@
-
-
-chrome.tabs.onUpdated.addListener(function(activeInfo, tabInfo) {
-    if (activeInfo.status === 'complete') {
+let panelUpdated = false;
+chrome.tabs.onUpdated.addListener(function (activeInfo, tabInfo) {
+    console.log("## chrome.tabs.onUpdated ############ ")
+    if (activeInfo.status === 'complete' && !panelUpdated) {
         var tabId = activeInfo.tabId;
 
-        chrome.tabs.get(tabId, function(tab) {
+        chrome.tabs.get(tabId, function (tab) {
             var url = tab.url;
             console.log("2 Current URL in active tab: " + url);
 
             // Envoie un message à la pop-up avec l'URL de l'onglet actif
-            chrome.runtime.sendMessage({ action: "updateUrl", tab: tab });
+            chrome.runtime.sendMessage({action: "updateUrl", tab: tab});
+            panelUpdated = true;
         });
     }
 });
 
 
-
-chrome.tabs.onActivated.addListener(function(activeInfo) {
+chrome.tabs.onActivated.addListener(function (activeInfo) {
     // activeInfo contient des informations sur l'onglet actif
+    console.log("## chrome.tabs.onActivated ############ ")
     var tabId = activeInfo.tabId;
 
-    chrome.tabs.get(tabId, function(tab) {
+    chrome.tabs.get(tabId, function (tab) {
         // tab contient des informations sur l'onglet actuel
         var url = tab.url;
         console.log("1 Current URL in active tab: " + url);
 
         // Envoie un message à la pop-up avec l'URL de l'onglet actif
         //chrome.runtime.sendMessage({ action: "updateUrl", url: url });
-        chrome.runtime.sendMessage({ action: "updateUrl", tab: tab });
+        chrome.runtime.sendMessage({action: "updateUrl", tab: tab});
     });
+    panelUpdated = true;
 });
 
-chrome.webNavigation.onCommitted.addListener(function(activeInfo) {
-    var tabId = activeInfo.tabId;
+chrome.webNavigation.onCommitted.addListener(function (activeInfo) {
+    if (!panelUpdated) {
+        var tabId = activeInfo.tabId;
+        chrome.tabs.get(tabId, function (tab) {
+            // tab contient des informations sur l'onglet actuel
+            var url = tab.url;
+            console.log("1 Current URL in active tab: " + url);
 
-    chrome.tabs.get(tabId, function(tab) {
-        // tab contient des informations sur l'onglet actuel
-        var url = tab.url;
-        console.log("1 Current URL in active tab: " + url);
-
-        // Envoie un message à la pop-up avec l'URL de l'onglet actif
-        //chrome.runtime.sendMessage({ action: "updateUrl", url: url });
-        chrome.runtime.sendMessage({ action: "updateUrl", tab: tab });
-    });
+            // Envoie un message à la pop-up avec l'URL de l'onglet actif
+            //chrome.runtime.sendMessage({ action: "updateUrl", url: url });
+            chrome.runtime.sendMessage({action: "updateUrl", tab: tab});
+        });
+    }
 });
 
 /*
@@ -62,7 +65,6 @@ chrome.webNavigation.onCommitted.addListener(function(details) {
 });
 
  */
-
 
 
 /*

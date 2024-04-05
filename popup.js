@@ -337,6 +337,10 @@ document.addEventListener("DOMContentLoaded", async function () {
             titleInput.value = currentTab.title;
             urlInput.value = currentTab.url;
 
+            spinnerContainer.style.display = "block";
+            addButton.style.display = "none"
+            updateButton.style.display = "none"
+
             if (pinData.records.length === 0) {
                 commentInput.value = "";
                 const thumbnailUrl = await getThumbnail(currentTab.url);
@@ -356,12 +360,11 @@ document.addEventListener("DOMContentLoaded", async function () {
                 imgUrlInput.value = record.fields.img_url;
                 imgElement.src = record.fields.img_url;
                 ratingInput.value = record.fields.rating;
-                statusInput.checked = record.fields.status=="1"
+                statusInput.checked = record.fields.status == "1"
                 updateStars(0, record.fields.rating);
                 //
                 addButton.style.display = "none"
                 updateButton.style.display = "block"
-
             }
         } catch (error) {
             console.error("Error handling tab data:", error);
@@ -420,10 +423,6 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     /**********************/
     try {
-        spinnerContainer.style.display = "block";
-        addButton.style.display = "none"
-        updateButton.style.display = "none"
-        //
         const currentTab = await getCurrentTab(); // données de la page
         const pinData = await getPinData(currentTab.url);
         await processPinData(currentTab, pinData); // récup des données en base ou des données de la page
@@ -445,6 +444,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 return null;
             }
             if (action === "add") {
+                spinnerContainer.style.display = "block";
                 method = "POST";
                 postData = {
                     "records": [{
@@ -462,7 +462,10 @@ document.addEventListener("DOMContentLoaded", async function () {
                         }
                     }]
                 };
+                addButton.style.display = "none"
+                updateButton.style.display = "block"
             } else if (action === "update") {
+                spinnerContainer.style.display = "block";
                 method = "PATCH";
                 postData = {
                     "records": [{
@@ -483,7 +486,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                     }]
                 }
             }
-           // window.close();
+            // window.close();
 
             try {
                 const response = await fetch("https://api.airtable.com/v0/app7zNJoX11DY99UA/Pins", {
@@ -493,12 +496,10 @@ document.addEventListener("DOMContentLoaded", async function () {
                         "Content-Type": "application/json"
                     },
                     body: JSON.stringify(postData)
-                });
-                //const responseData = await response.json()
-                //console.log("Réponse de la requête POST:", responseData);
-                //.then(window.close())
-
-
+                })
+                    .then(() => setTimeout(() => {
+                        spinnerContainer.style.display = "none";
+                    }, 1000))
             } catch (error) {
                 console.error("Error making POST request:", error);
             }
