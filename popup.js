@@ -78,7 +78,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     //*********************************
     //***** Méthodes    ***************
     //*********************************
-    function getMiniUrl(url) {
+    function getSiteFromUrl(url) {
         let parsedURL = "";
         try {
             parsedURL = new URL(url);
@@ -328,6 +328,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             const cardIdInput = document.getElementById("card_id");
             const titleInput = document.getElementById("title");
             const urlInput = document.getElementById("url");
+            const siteInput = document.getElementById("site");
             const commentInput = document.getElementById("comment");
             const imgUrlInput = document.getElementById("img_url");
             const imgElement = document.getElementById("img");
@@ -336,6 +337,10 @@ document.addEventListener("DOMContentLoaded", async function () {
 
             titleInput.value = currentTab.title;
             urlInput.value = currentTab.url;
+            siteInput.value = getSiteFromUrl(currentTab.url)
+
+            const siteData = await getSiteData(currentTab.url);
+            console.log (siteData);
 
             spinnerContainer.style.display = "block";
             addButton.style.display = "none"
@@ -420,89 +425,116 @@ document.addEventListener("DOMContentLoaded", async function () {
         spinnerContainer.style.display = "none";
     }
 
+    async function handleSiteData (domain, url, rating) {
+
+    }
+
+    async function getSiteData(url) {
+        spinnerContainer.style.display = "block";
+        let method = "GET";
+        try {
+            const filterField = 'url';
+            const filterValue = "^" + url.replace(/[|\\{}()[\]^$+*?.\/]/g, '\\$&') + "$";
+            const filterFormula = `REGEX_MATCH({${filterField}}, "${filterValue}" )`;
+            const apiUrl = `https://api.airtable.com/v0/app7zNJoX11DY99UA/pins?filterByFormula=${encodeURIComponent(filterFormula)}`;
+            //const apiUrl = `https://api.airtable.com/v0/app7zNJoX11DY99UA/Sites?filterByFormula=AND({url}='`+url+`')`;
+            const response = await fetch(apiUrl, {headers});
+            if (!response.ok) {
+                throw new Error(`Failed to fetch data. Status: ${response.status}`);
+            }
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error("Error fetching or processing data:", error);
+        }
+    }
+
+    async function handleFormSubmit(action) {
+        const formData = new FormData(form);
+        const selectedTags = formData.getAll("tags");
+        const selectedDomains = formData.getAll("domains");
+        let method = ""
+        let postData;
+
+        if (action === "cancel") {
+            window.close();
+            return null;
+        }
+        if (action === "add") {
+            spinnerContainer.style.display = "block";
+            method = "POST";
+            postData = {
+                "records": [{
+                    "fields": {
+                        "name": formData.get("title"),
+                        "rating": formData.get("rating"),
+                        "url": formData.get("url"),
+                        "site": formData.get("site"),
+                        "description": formData.get("comment") == undefined ? "" : formData.get("comment"),
+                        "img_url": formData.get("img_url"),
+                        "tags": selectedTags,
+                        "domain": selectedDomains,
+                        "groups": checkedGroups,
+                        "status": formData.get("status") === "on" ? "1" : "0"
+                    }
+                }]
+            };
+            addButton.style.display = "none"
+            updateButton.style.display = "block"
+        } else if (action === "update") {
+            spinnerContainer.style.display = "block";
+            method = "PATCH";
+            postData = {
+                "records": [{
+                    "id": formData.get("card_id"),
+                    "fields": {
+                        "name": formData.get("title"),
+                        "rating": formData.get("rating"),
+                        "url": formData.get("url"),
+                        "site": formData.get("site"),
+                        "description": formData.get("comment"),
+                        "img_url": formData.get("img_url"),
+                        "status": formData.get("status"),
+                        "tags": selectedTags,
+                        "domain": selectedDomains,
+                        "groups": checkedGroups,
+                        "status": formData.get("status") === "on" ? "1" : "0"
+                    }
+                }]
+            }
+        }
+        // window.close();
+
+        try {
+            const response = await fetch("https://api.airtable.com/v0/app7zNJoX11DY99UA/Pins", {
+                method: method,
+                headers: {
+                    "Authorization": " Bearer " + token,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(postData)
+            })
+                .then(() => setTimeout(() => {
+                    spinnerContainer.style.display = "none";
+                }, 1000))
+        } catch (error) {
+            console.error("Error making POST request:", error);
+        }
+    }
 
     /**********************/
     try {
         const currentTab = await getCurrentTab(); // données de la page
         const pinData = await getPinData(currentTab.url);
+        //
         await processPinData(currentTab, pinData); // récup des données en base ou des données de la page
         //
         await createFormItems(pinData)
         // submit
         form.addEventListener("submit", async function (event) {
             event.preventDefault();
-
-            const formData = new FormData(form);
-            const selectedTags = formData.getAll("tags");
-            const selectedDomains = formData.getAll("domains");
             const action = event.submitter ? event.submitter.value : null;
-            let method = ""
-            let postData;
-
-            if (action === "cancel") {
-                window.close();
-                return null;
-            }
-            if (action === "add") {
-                spinnerContainer.style.display = "block";
-                method = "POST";
-                postData = {
-                    "records": [{
-                        "fields": {
-                            "name": formData.get("title"),
-                            "rating": formData.get("rating"),
-                            "url": formData.get("url"),
-                            "mini_url": getMiniUrl(formData.get("url")),
-                            "description": formData.get("comment") == undefined ? "" : formData.get("comment"),
-                            "img_url": formData.get("img_url"),
-                            "tags": selectedTags,
-                            "domain": selectedDomains,
-                            "groups": checkedGroups,
-                            "status": formData.get("status") === "on" ? "1" : "0"
-                        }
-                    }]
-                };
-                addButton.style.display = "none"
-                updateButton.style.display = "block"
-            } else if (action === "update") {
-                spinnerContainer.style.display = "block";
-                method = "PATCH";
-                postData = {
-                    "records": [{
-                        "id": formData.get("card_id"),
-                        "fields": {
-                            "name": formData.get("title"),
-                            "rating": formData.get("rating"),
-                            "url": formData.get("url"),
-                            "mini_url": getMiniUrl(formData.get("url")),
-                            "description": formData.get("comment"),
-                            "img_url": formData.get("img_url"),
-                            "status": formData.get("status"),
-                            "tags": selectedTags,
-                            "domain": selectedDomains,
-                            "groups": checkedGroups,
-                            "status": formData.get("status") === "on" ? "1" : "0"
-                        }
-                    }]
-                }
-            }
-            // window.close();
-
-            try {
-                const response = await fetch("https://api.airtable.com/v0/app7zNJoX11DY99UA/Pins", {
-                    method: method,
-                    headers: {
-                        "Authorization": " Bearer " + token,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify(postData)
-                })
-                    .then(() => setTimeout(() => {
-                        spinnerContainer.style.display = "none";
-                    }, 1000))
-            } catch (error) {
-                console.error("Error making POST request:", error);
-            }
+            await handleFormSubmit(action);
         });
     } catch
         (error) {
