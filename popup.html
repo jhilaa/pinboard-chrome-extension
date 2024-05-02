@@ -32,8 +32,14 @@
                         <input placeholder="Titre" id="title" name="title"/>
                         <label for="url">Url:</label>
                         <input placeholder="Url" id="url" name="url"/>
+                        <input id="site_id" name="site_id" class="hiddenx"/>
                         <label for="site">Site:</label>
                         <input placeholder="Site" id="site" name="site"/>
+                        <label for="new_site">New site:</label>
+                        <input placeholder="New site" id="new_site" name="new_site"/>
+                        <label for="site_rating">rating:</label>
+                        <i id="site_rating_star" class="bi bi-star" ></i>
+                        <input placeholder="Site rating" id="site_rating" name="site_rating"/>
                         <label for="img">Vignette:</label>
                         <input id="img_url" name="img_url" type="text" placeholder="url de l'image"/>
                         <img id="img" src="./public/blank.png" alt="thumbnail" class="thumbnail"
@@ -116,7 +122,6 @@
     </form>
 </div>
 
-<script src="./public/script.js"></script>
 <script src="./public/tree.min.js"></script>
 <script src="./popup.js"></script>
 <script src="./jquery/dist/jquery.slim.min.js"></script>

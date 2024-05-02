@@ -75,6 +75,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
     });
 
+
+
     //*********************************
     //***** Méthodes    ***************
     //*********************************
@@ -530,6 +532,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         await processPinData(currentTab, pinData); // récup des données en base ou des données de la page
         //
         await createFormItems(pinData)
+
+
         // submit
         form.addEventListener("submit", async function (event) {
             event.preventDefault();
