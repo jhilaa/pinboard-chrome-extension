@@ -63,6 +63,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     //*********************************
     //**** evenement sur les onglets **
     //*********************************
+    /**
     chrome.runtime.onMessage.addListener(async function (message, sender, sendResponse) {
         if (message.action === "updateUrl") {
             const tab = message.tab
@@ -73,6 +74,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             await createFormItems(pinData)
         }
     });
+     */
 
 
 
@@ -376,6 +378,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 ratingInput.value = record.fields.rating;
                 statusInput.checked = record.fields.status == "1"
                 updateStars(0, record.fields.rating);
+                //TODO : gestion des tags
                 //
                 addButton.style.display = "none"
                 updateButton.style.display = "block"
@@ -427,8 +430,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         await processDomainsData(domainsData, selectedDomain);
         // récup des données Tags
         const tagsData = await getTagsData(selectedDomain);
-        await processTagsData(tagsData);
         const selectedTags = await getSelectedTags(pinData);
+        await processTagsData(tagsData, selectedTags);
         // récup des données Groupe
         const groupsData = await getGroupsData(selectedDomain);
         const selectedGroups = await getSelectedGroups(pinData);
@@ -437,7 +440,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         spinnerContainer.style.display = "none";
     }
 
-    //TODO processSiteData
     async function processSiteData(currentTabSite, siteData) {
         try {
             const site = document.getElementById("site");
@@ -498,7 +500,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                         "name": formData.get("title"),
                         "rating": formData.get("rating"),
                         "url": formData.get("url"),
-                        "site": formData.get("site"),
+                        //"site": formData.get("site"), // pas censé changer
                         "description": formData.get("comment"),
                         "img_url": formData.get("img_url"),
                         "status": formData.get("status"),
