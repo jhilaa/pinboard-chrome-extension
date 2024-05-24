@@ -16,6 +16,9 @@ document.addEventListener("DOMContentLoaded", async function () {
     const tagsDiv = document.getElementById("tags");
     const content = document.getElementById("content");
     const spinnerContainer = document.getElementById("spinnerContainer");
+    const site = document.getElementById("site");
+    const newSite = document.getElementById("new_site");
+    const siteRating = document.getElementById("site_rating");
     let checkedGroups;
 
     content.style.display = "block";
@@ -60,11 +63,12 @@ document.addEventListener("DOMContentLoaded", async function () {
         });
     })
 
+
     //*********************************
     //**** evenement sur les onglets **
     //*********************************
     /**
-    chrome.runtime.onMessage.addListener(async function (message, sender, sendResponse) {
+     chrome.runtime.onMessage.addListener(async function (message, sender, sendResponse) {
         if (message.action === "updateUrl") {
             const tab = message.tab
             const url = tab.url;
@@ -79,7 +83,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
 
     //*********************************
-    //***** Méthodes    ***************
+    //***** utils    ***************
     //*********************************
     function getSiteFromUrl(url) {
         let parsedURL = "";
@@ -329,9 +333,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     async function getSiteData(site) {
-        //const site = getSiteFromUrl(url);
         try {
-            const apiUrl = `https://api.airtable.com/v0/app7zNJoX11DY99UA/Sites?filterByFormula=AND({site}='`+ site + `')`;
+            const apiUrl = `https://api.airtable.com/v0/app7zNJoX11DY99UA/Sites?filterByFormula=AND({site}='` + site + `')`;
             const response = await fetch(apiUrl, {headers});
             const data = await response.json();
             return data;
@@ -421,7 +424,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         return "";
     }
 
-    async function createFormItems(pinData) {
+    async function createFormItems(pinData, siteData) {
         spinnerContainer.style.display = "block";
         // récup des données Domaine pour la liste déroulante,
         // et du dernier domaine stocké dans lees cookies
@@ -442,11 +445,6 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     async function processSiteData(currentTabSite, siteData) {
         try {
-            const site = document.getElementById("site");
-            const siteId = document.getElementById("site_id");
-            const newSite = document.getElementById("new_site");
-            const siteRating = document.getElementById("site_rating");
-
             site.value = currentTabSite;
             newSite.value = true;
             if (siteData != undefined) {
@@ -458,27 +456,218 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
     }
 
-    async function handleFormSubmit(action) {
+    async function createSite(siteData) {
+        try {
+            const response = await fetch("https://api.airtable.com/v0/app7zNJoX11DY99UA/Sites", {
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + token,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(siteData)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const responseData = await response.json();
+            console.log("Response data:", responseData);
+
+            // réponse
+            const record = responseData.records[0];
+            const siteId = record.id;
+            const createdTime = record.createdTime;
+            const site = record.fields.site;
+            const siteRating = record.fields.site_rating;
+            const domain = record.fields.domain[0];
+            const domainName = record.fields.domain_name[0];
+
+            console.log(`Site ID: ${siteId}`);
+            console.log(`Created Time: ${createdTime}`);
+            console.log(`Site: ${site}`);
+            console.log(`Site Rating: ${siteRating}`);
+            console.log(`Domain ID: ${domain}`);
+            console.log(`Domain Name: ${domainName}`);
+
+            // You can now use these variables as needed in your application
+            return record;
+        } catch (error) {
+            console.error("Error making POST request:", error);
+            return null;
+        }
+    }
+
+    async function updateSite(siteData) {
+        try {
+            const response = await fetch("https://api.airtable.com/v0/app7zNJoX11DY99UA/Sites", {
+                method: "PATCH",
+                headers: {
+                    "Authorization": "Bearer " + token,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(siteData)
+            });
+
+            // Cacher le spinner après une courte période
+            setTimeout(() => {
+                spinnerContainer.style.display = "none";
+            }, 1000);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const responseData = await response.json();
+            console.log("Response data:", responseData);
+
+            if (responseData.records.length > 0) {
+                const record = responseData.records[0];
+                return record;
+            } else {
+                return undefined;
+            }
+        } catch (error) {
+            console.error("Error making PATCH request:", error);
+            return null;
+        }
+    }
+
+
+    async function createPin(pinData) {
+        try {
+            const response = await fetch("https://api.airtable.com/v0/app7zNJoX11DY99UA/Pins", {
+                method: "POST",
+                headers: {
+                    "Authorization": " Bearer " + token,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(pinData)
+            })
+                .then(() => setTimeout(() => {
+                    spinnerContainer.style.display = "none";
+                }, 1000))
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const responseData = await response.json();
+            console.log("Response data:", responseData);
+            if (responseData.records.length > 0) {
+                const record = responseData.records[0];
+                return record;
+            } else return null;
+        } catch (error) {
+            console.error("Error making POST request:", error);
+        }
+    }
+
+    async function updatePin(pinData) {
+        try {
+            const response = await fetch("https://api.airtable.com/v0/app7zNJoX11DY99UA/Pins", {
+                method: "PATCH",
+                headers: {
+                    "Authorization": " Bearer " + token,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(pinData)
+            })
+                .then(() => setTimeout(() => {
+                    spinnerContainer.style.display = "none";
+                }, 1000))
+            //------------
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const responseData = await response.json();
+            console.log("Response data:", responseData);
+            if (responseData.records.length > 0) {
+                const record = responseData.records[0];
+                return record;
+            } else return null;
+        } catch (error) {
+            console.error("Error making POST request:", error);
+        }
+    }
+
+    async function handleFormSubmit(action, siteData, pinData) {
         const formData = new FormData(form);
         const selectedTags = formData.getAll("tags");
         const selectedDomains = formData.getAll("domains");
+        let siteId = (function() {
+            if (siteData != undefined && siteData.records.length > 0) {
+                return siteData.records[0].id
+            } else return undefined
+        })();
+
+        let pinId = (function() {
+            if (pinData != undefined && pinData.records.length > 0) {
+                return pinData.records[0].id
+            } else return undefined
+        })();
         let method = ""
         let postData;
-
+        //TODO gestion create
         if (action === "cancel") {
             window.close();
             return null;
         }
-        if (action === "add") {
+
+        // si la fiche n'existe pas'
+        //if (action === "add") {
+        if (pinId == undefined) {
+            /***here**/
             spinnerContainer.style.display = "block";
+            // teste si le site "parent" existe.
+            // si il n'existe pas, on le crée et on, récupère
+            if (siteId == undefined) {
+                //création du site + création du pin
+                let siteRatingValue = "0"
+                if (siteRating.value != undefined && siteRating.value!="") {
+                    siteRatingValue = siteRating.value;
+                }
+                siteData = {
+                    "records": [
+                        {
+                            "fields": {
+                                "site": site.value,
+                                //"site_rating": siteRating.value,
+                                "site_rating": siteRatingValue,
+                                "domain": selectedDomains
+                            }
+                        }
+                    ]
+                };
+                const newSiteRecord = await createSite(siteData);
+                siteId = newSiteRecord.id
+            }
+                // sinon (le site parent existe déjà on met à jour la donnée "site")
+            //TODO moyen d'optimiser ça : pas besoin si on n'a pas modifié les données "site"
+            else {
+                siteData = {
+                    "records": [
+                        {
+                            "id": siteId,
+                            "fields": {
+                                "site": site.value,
+                                "site_rating": siteRating.value,
+                                "domain": selectedDomains
+                            }
+                        }
+                    ]
+                }
+                await updateSite(siteData);
+            }
+
+            //creation du pin
             method = "POST";
-            postData = {
+            pinData = {
                 "records": [{
                     "fields": {
                         "name": formData.get("title"),
                         "rating": formData.get("rating"),
                         "url": formData.get("url"),
-                        "site": formData.get("site"),
+                        "site": [siteId],
                         "description": formData.get("comment") == undefined ? "" : formData.get("comment"),
                         "img_url": formData.get("img_url"),
                         "tags": selectedTags,
@@ -488,47 +677,34 @@ document.addEventListener("DOMContentLoaded", async function () {
                     }
                 }]
             };
+
+            const newPinRecord = await createPin(pinData)
             addButton.style.display = "none"
             updateButton.style.display = "block"
-        } else if (action === "update") {
+            console.log ("newPinRecord : "+ newPinRecord)
+            //} else if (action === "update") {
+        } else {
             spinnerContainer.style.display = "block";
-            method = "PATCH";
-            postData = {
+            pinData = {
                 "records": [{
-                    "id": formData.get("card_id"),
+                    "id": pinId,
                     "fields": {
                         "name": formData.get("title"),
                         "rating": formData.get("rating"),
                         "url": formData.get("url"),
-                        //"site": formData.get("site"), // pas censé changer
-                        "description": formData.get("comment"),
+                        "site": [siteId],
+                        "description": formData.get("comment") == undefined ? "" : formData.get("comment"),
                         "img_url": formData.get("img_url"),
-                        "status": formData.get("status"),
                         "tags": selectedTags,
                         "domain": selectedDomains,
                         "groups": checkedGroups,
                         "status": formData.get("status") === "on" ? "1" : "0"
                     }
                 }]
-            }
+            };
+            await updatePin(pinData);
         }
         // window.close();
-
-        try {
-            const response = await fetch("https://api.airtable.com/v0/app7zNJoX11DY99UA/Pins", {
-                method: method,
-                headers: {
-                    "Authorization": " Bearer " + token,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(postData)
-            })
-                .then(() => setTimeout(() => {
-                    spinnerContainer.style.display = "none";
-                }, 1000))
-        } catch (error) {
-            console.error("Error making POST request:", error);
-        }
     }
 
     /**********************/
@@ -538,25 +714,34 @@ document.addEventListener("DOMContentLoaded", async function () {
         const currentTabSite = getSiteFromUrl(currentTabUrl);
         const pinData = await getPinData(currentTabUrl);
         const siteData = await getSiteData(currentTabSite);
-        //
+        const domainsData = await getDomainsData(); // liste de tous les domaines
+        const selectedDomain = await getSelectedDomain(pinData);
+        const tagsData = await getTagsData(selectedDomain);
+        const selectedTags = await getSelectedTags(pinData);
+        const groupsData = await getGroupsData(selectedDomain);
+        const selectedGroups = await getSelectedGroups(pinData);
+
+        spinnerContainer.style.display = "block";
         await processPinData(currentTab, pinData); // récup des données en base ou des données de la page
         await processSiteData(currentTabSite, siteData); // récup des données en base ou des données de la page
-        await createFormItems(pinData)
+        //await createFormItems(pinData, siteData)
+        await processDomainsData(domainsData, selectedDomain);
+        await processTagsData(tagsData, selectedTags);
+        await processGroupsData(groupsData, selectedGroups);
         await setAccordionItem();
-
+        spinnerContainer.style.display = "none";
         // submit
         form.addEventListener("submit", async function (event) {
             event.preventDefault();
             const action = event.submitter ? event.submitter.value : null;
-            await handleFormSubmit(action);
+            await handleFormSubmit(action, siteData, pinData);
         });
     } catch
         (error) {
         console.error("Error:", error);
     }
 
-    async function setAccordionItem()
-    {
+    async function setAccordionItem() {
         const accordionItemHeaders = document.querySelectorAll(".accordion-item-header");
         accordionItemHeaders.forEach(accordionItemHeader => {
             accordionItemHeader.addEventListener("click", event => {
