@@ -4,25 +4,15 @@ chrome.runtime.onInstalled.addListener(() => {
 
 // Fonction pour obtenir l'onglet actif
 async function getActiveTab() {
-    //let queryOptions = { active: true, currentWindow: true };
-    let queryOptions = { active: true};
-    let tabs = await chrome.tabs.query(queryOptions);
-    let tabs1=await chrome.tabs.query({ active: true});
-    let tabs2=await chrome.tabs.query({ currentWindow: true});
-    console.log("Tabs returned:", tabs); // Ajoutez cette ligne pour loguer les onglets retournés
-    if (tabs.length === 0) {
-        console.error("No active tab found.");
-        return null;
-    }
-    return tabs[0];
+    let queryOptions = { active: true, currentWindow: true };
+    let [tab] = await chrome.tabs.query(queryOptions);
+    return tab;
 }
 
+// Fonction asynchrone pour obtenir l'URL de l'onglet actif
 async function getActiveTabUrl() {
     try {
         const tab = await getActiveTab();
-        if (!tab) {
-            throw new Error("No active tab found.");
-        }
         return tab.url;
     } catch (error) {
         console.error("getActiveTabUrl error: " + error);
@@ -30,20 +20,22 @@ async function getActiveTabUrl() {
     }
 }
 
+// Fonction pour envoyer un message au Content Script pour obtenir la miniature
 async function getThumbnail(url) {
     try {
-        const tab = await getActiveTab();
-        if (!tab) {
-            throw new Error("No active tab found.");
-        }
-        const response = await chrome.tabs.sendMessage(tab.id, { action: 'getThumbnail', url: url });
-        return response.thumbnail;
+        //const tab = await getActiveTab();
+        //const response = await chrome.tabs.sendMessage(tab.id, { action: 'getThumbnail', url: url });
+        //return response.thumbnail;
+        //return "https://img.freepik.com/free-vector/colorful-pastel-poly-background_53876-62618.jpg";
+        return "https://img.freepik.com/photos-gratuite/peinture-lac-montagne-montagne-arriere-plan_188544-9126.jpg";
+
     } catch (error) {
         console.error("Error fetching thumbnail:", error);
         return "https://img.freepik.com/photos-gratuite/peinture-lac-montagne-montagne-arriere-plan_188544-9126.jpg";
     }
 }
 
+// Fonction pour récupérer les données de l'API Airtable
 async function fetchData(endpoint, headers) {
     const apiUrlBase = "https://api.airtable.com/v0/app7zNJoX11DY99UA/";
     try {
@@ -55,6 +47,7 @@ async function fetchData(endpoint, headers) {
     }
 }
 
+// Écouteur de message principal
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const token = "pateoiLGxeeOa1bbO.7d97dd01a0d5282f7e4d3b5fff9c9e10d2023d3a34b1811e1152a97182c2238d";
     const headers = new Headers({
@@ -203,6 +196,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Indiquer que la réponse sera envoyée de manière asynchrone
 });
 
+// changement d'onglet actif
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
     console.log("onActivated ------------------");
     const url = await getActiveTabUrl();

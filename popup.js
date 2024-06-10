@@ -1,9 +1,4 @@
 document.addEventListener("DOMContentLoaded", async function () {
-    const token = "pateoiLGxeeOa1bbO.7d97dd01a0d5282f7e4d3b5fff9c9e10d2023d3a34b1811e1152a97182c2238d"; // Replace with your Bearer Token
-    const headers = new Headers({
-        "Authorization": `Bearer ${token}`
-    });
-
     const stars = document.querySelectorAll('.star');
     const form = document.getElementById("addForm");
     const status = document.getElementById('status');
@@ -23,63 +18,100 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     content.style.display = "block";
 
-    //*********************************
-    //***** Evenements  ***************
-    //*********************************
-    // evenement sur le champ adresse
-    if (document.querySelector('input[name="domain"]')) {
-        document.querySelectorAll('input[name="domain"]').forEach((elem) => {
-            elem.addEventListener("change", function (event) {
-                const item = event.target.value;
-                console.log(item);
+    // Event listeners
+    function setListenerOnDomainItems() {
+        if (document.querySelector('input[name="domain"]')) {
+            document.querySelectorAll('input[name="domain"]').forEach((elem) => {
+                elem.addEventListener("change", function (event) {
+                    const item = event.target.value;
+                    console.log(item);
+                });
+            });
+        }
+    }
+    function setListenertOnImgUrlInput() {
+        imgUrl.addEventListener("input", (e) => {
+            e.preventDefault();
+            const imgElement = document.getElementById("img");
+            imgElement.src = imgUrl.value;
+        });
+    }
+    function setListenerOnBtns() {
+        cancelButton.addEventListener("click", function () {
+            window.close();
+        });
+    }
+    function setListenerOnStars () {
+        function updateStars(new_value) {
+            stars.forEach((star, index) => {
+                if (index < new_value) {
+                    star.classList.add('bi-star-fill');
+                    star.classList.remove('bi-star');
+                } else {
+                    star.classList.add('bi-star');
+                    star.classList.remove('bi-star-fill');
+                }
+            });
+        }
+
+        stars.forEach(star => {
+            star.addEventListener('click', () => {
+                let old_value = parseInt(rating.value);
+                let new_value = parseInt(star.getAttribute('data-value'));
+
+                if (old_value == 1 && new_value == 1) {
+                    new_value = 0;
+                }
+                rating.value = new_value;
+                updateStars(new_value);
             });
         });
     }
-
-    // evenement sur le zone de saisie image
-    imgUrl.addEventListener("input", (e) => {
-        e.preventDefault();
-        const imgElement = document.getElementById("img")
-        imgElement.src = imgUrl.value;
-    })
-
-    // événement sur le bouton annuler
-    cancelButton.addEventListener("click", function () {
-        // Close the popup window
-        window.close();
-    });
-
-    // événement sur les étoiles
-    stars.forEach(star => {
-        star.addEventListener('click', () => {
-            let old_value = parseInt(rating.value);
-            let new_value = parseInt(star.getAttribute('data-value'));
-
-            if (old_value == 1 && new_value == 1) {
-                new_value = 0;
-            }
-            rating.value = new_value;
-            updateStars(0, new_value);
+    // Form submit handler
+    function setListenerOnForm () {
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            spinnerContainer.style.display = "block";
+            //const action = addButton.style.display === "block" ? "add" : "update";
+            chrome.runtime.sendMessage({
+                action: "handleFormSubmit",
+                params: {
+                    formData: new FormData(form),
+                    checkedGroups: checkedGroups,
+                    tagAddOrUpdate: addButton.style.display === "block" ? "add" : "update"
+                }
+            }, (response) => {
+                if (response.success) {
+                    window.close();
+                } else {
+                    spinnerContainer.style.display = "none";
+                    alert("An error occurred. Please try again.");
+                }
+            });
         });
-    })
+    }
+    function setAccordionItem() {
+        const accordionItemHeaders = document.querySelectorAll(".accordion-item-header");
+        accordionItemHeaders.forEach(accordionItemHeader => {
+            accordionItemHeader.addEventListener("click", event => {
+                // Uncomment in case you only want to allow for the display of only one collapsed item at a time!
+                const currentlyActiveAccordionItemHeader = document.querySelector(".accordion-item-header.active");
+                if (currentlyActiveAccordionItemHeader && currentlyActiveAccordionItemHeader !== accordionItemHeader) {
+                    currentlyActiveAccordionItemHeader.classList.toggle("active");
+                    currentlyActiveAccordionItemHeader.nextElementSibling.style.maxHeight = 0;
+                }
 
+                accordionItemHeader.classList.toggle("active");
+                const accordionItemBody = accordionItemHeader.nextElementSibling;
+                if (accordionItemHeader.classList.contains("active")) {
+                    accordionItemBody.style.maxHeight = accordionItemBody.scrollHeight + "px";
+                } else {
+                    accordionItemBody.style.maxHeight = 0;
+                }
 
-    //*********************************
-    //**** evenement sur les onglets **
-    //*********************************
-    /**
-     chrome.runtime.onMessage.addListener(async function (message, sender, sendResponse) {
-        if (message.action === "updateUrl") {
-            const tab = message.tab
-            const url = tab.url;
-            const title = tab.title;
-            const pinData = await getPinData(url);
-            await processPinData(tab, pinData); // récup des données en base ou des données de la page
-            await createFormItems(pinData)
-        }
-    });
-     */
-
+            });
+        })
+    };
 
 
     //*********************************
@@ -97,22 +129,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             return parsedURL
         }
     }
-
-    function updateStars(old_value, new_value) {
-        stars.forEach((star, index) => {
-            if (index < new_value) {
-                star.classList.add('bi-star-fill');
-                star.classList.remove('bi-star');
-            } else {
-                star.classList.add('bi-star');
-                star.classList.remove('bi-star-fill');
-            }
-        });
-    }
-
-    //************************************
-    //***** Construction de side page  ***
-    //************************************
+    // Fonctions pour construire le pop up
     async function getCurrentTab() {
         return new Promise((resolve, reject) => {
             const queryOptions = {active: true, currentWindow: true};
@@ -125,42 +142,20 @@ document.addEventListener("DOMContentLoaded", async function () {
                 }
             });
         });
-    };
+    }
 
-    async function getThumbnail(url) {
+    async function processSiteData(currentTabSite, siteData) {
         try {
-            const response = await fetch(url);
-            const html = await response.text();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const ogImage = doc.querySelector('meta[property="og:image"]');
-            if (ogImage) {
-                const thumbnailUrl = ogImage.getAttribute('content');
-                console.log("Thumbnail URL:", thumbnailUrl);
-                return thumbnailUrl;
-            } else {
-                console.log("No Open Graph image found.");
-                return "https://img.freepik.com/free-vector/colorful-pastel-poly-background_53876-62618.jpg?size=626&ext=jpg";
+            site.value = currentTabSite;
+            newSite.value = true;
+            if (siteData != undefined) {
+                newSite.value = false;
+                siteRating.value = siteData.records[0].fields.site_rating;
             }
         } catch (error) {
-            console.error("Error fetching thumbnail:", error);
-            return "https://img.freepik.com/free-vector/colorful-pastel-poly-background_53876-62618.jpg?size=626&ext=jpg";
+            console.error("Error handling site data:", error);
         }
     }
-
-    // info domaines pour construire les radiobouton
-    async function getDomainsData() {
-        try {
-            const apiUrl = `https://api.airtable.com/v0/app7zNJoX11DY99UA/Domains`;
-            const response = await fetch(apiUrl, {headers});
-            const data = await response.json();
-            return data;
-        } catch (error) {
-            console.error("Error fetching data from the database:", error);
-            throw error;
-        }
-    }
-
     async function processDomainsData(domainsData, selectedDomain) {
         try {
             const domains = domainsData.records.toSorted((a, b) => {
@@ -209,20 +204,6 @@ document.addEventListener("DOMContentLoaded", async function () {
             console.error("Error handling domain data:", error);
         }
     }
-
-    // info tags pour construire les checkbox
-    async function getTagsData(domain) {
-        try {
-            const apiUrl = `https://api.airtable.com/v0/app7zNJoX11DY99UA/Tags?filterByFormula=` + encodeURIComponent(`AND({domain_name}="` + domain + `")`);
-            const response = await fetch(apiUrl, {headers});
-            const data = await response.json();
-            return data;
-        } catch (error) {
-            console.error("Error fetching data from the database:", error);
-            throw error;
-        }
-    }
-
     async function processTagsData(tagsData, selectedTags) {
         try {
             const tags = tagsData.records.toSorted((a, b) => {
@@ -262,20 +243,6 @@ document.addEventListener("DOMContentLoaded", async function () {
             console.error("Error handling tab data:", error);
         }
     }
-
-    // info groups pour construire les radiobutton
-    async function getGroupsData(domain) {
-        try {
-            const apiUrl = `https://api.airtable.com/v0/app7zNJoX11DY99UA/Groups?filterByFormula=` + encodeURIComponent(`AND({domain_name}="` + domain + `")`);
-            const response = await fetch(apiUrl, {headers});
-            const data = await response.json();
-            return data;
-        } catch (error) {
-            console.error("Error fetching data from the database:", error);
-            throw error;
-        }
-    }
-
     async function processGroupsData(groupsData, selectedGroups) {
         function trouverFils(array, parent) {
             let children = [];
@@ -315,35 +282,6 @@ document.addEventListener("DOMContentLoaded", async function () {
             console.error("Error fetching or processing data:", error);
         }
     }
-
-    // récup de la fiche correspondant à l'url
-    async function getPinData(url) {
-        try {
-            const filterField = 'url';
-            const filterValue = "^" + url.replace(/[|\\{}()[\]^$+*?.\/]/g, '\\$&') + "$";
-            const filterFormula = `REGEX_MATCH({${filterField}}, "${filterValue}" )`;
-            const apiUrl = `https://api.airtable.com/v0/app7zNJoX11DY99UA/pins?filterByFormula=${encodeURIComponent(filterFormula)}`;
-            const response = await fetch(apiUrl, {headers});
-            const data = await response.json();
-            return data;
-        } catch (error) {
-            console.error("Error fetching data from the database:", error);
-            throw error;
-        }
-    }
-
-    async function getSiteData(site) {
-        try {
-            const apiUrl = `https://api.airtable.com/v0/app7zNJoX11DY99UA/Sites?filterByFormula=AND({site}='` + site + `')`;
-            const response = await fetch(apiUrl, {headers});
-            const data = await response.json();
-            return data;
-        } catch (error) {
-            console.error("Error fetching data from the database:", error);
-            throw error;
-        }
-    }
-
     async function processPinData(currentTab, pinData) {
         try {
             const cardIdInput = document.getElementById("card_id");
@@ -362,9 +300,9 @@ document.addEventListener("DOMContentLoaded", async function () {
 
             if (pinData.records.length === 0) {
                 commentInput.value = "";
-                const thumbnailUrl = await getThumbnail(currentTab.url);
-                imgUrlInput.value = thumbnailUrl;
-                imgElement.src = thumbnailUrl;
+                //const thumbnailUrl = await getThumbnail(currentTab.url);
+                imgUrlInput.value = pinData.thumbnailUrl;
+                imgElement.src = pinData.thumbnailUrl;
                 ratingInput.value = "0";
                 updateStars(0, 0);
                 //
@@ -401,7 +339,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
         return "";
     }
-
     async function getSelectedTags(pinData) {
         if (pinData.records.length > 0) {
             if (pinData.records[0].fields.tags_name != undefined) {
@@ -412,7 +349,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
         return "";
     }
-
     async function getSelectedGroups(pinData) {
         if (pinData.records.length > 0) {
             if (pinData.records[0].fields.groups_name != undefined) {
@@ -532,7 +468,6 @@ document.addEventListener("DOMContentLoaded", async function () {
             return null;
         }
     }
-
 
     async function createPin(pinData) {
         try {
@@ -707,61 +642,69 @@ document.addEventListener("DOMContentLoaded", async function () {
         // window.close();
     }
 
-    /**********************/
-    try {
-        const currentTab = await getCurrentTab(); // données de la page
+    /**********************************************/
+    /**********************************************/
+
+
+    // Initialize
+    async function initialize() {
+        const currentTab = await getCurrentTab();
         const currentTabUrl = currentTab.url;
         const currentTabSite = getSiteFromUrl(currentTabUrl);
-        const pinData = await getPinData(currentTabUrl);
-        const siteData = await getSiteData(currentTabSite);
-        const domainsData = await getDomainsData(); // liste de tous les domaines
-        const selectedDomain = await getSelectedDomain(pinData);
-        const tagsData = await getTagsData(selectedDomain);
-        const selectedTags = await getSelectedTags(pinData);
-        const groupsData = await getGroupsData(selectedDomain);
-        const selectedGroups = await getSelectedGroups(pinData);
 
-        spinnerContainer.style.display = "block";
-        await processPinData(currentTab, pinData); // récup des données en base ou des données de la page
-        await processSiteData(currentTabSite, siteData); // récup des données en base ou des données de la page
-        //await createFormItems(pinData, siteData)
-        await processDomainsData(domainsData, selectedDomain);
-        await processTagsData(tagsData, selectedTags);
-        await processGroupsData(groupsData, selectedGroups);
-        await setAccordionItem();
-        spinnerContainer.style.display = "none";
-        // submit
-        form.addEventListener("submit", async function (event) {
-            event.preventDefault();
-            const action = event.submitter ? event.submitter.value : null;
-            await handleFormSubmit(action, siteData, pinData);
+        chrome.runtime.sendMessage(
+            {
+                action: "getData",
+                params: {url: currentTabUrl, site: currentTabSite}
+            }, async (domainsData, siteData, pinData, tagsData, groupsData) => {
+                const selectedDomain = null;  /* à compléter */
+                const selectedTags = null; /* à compléter */
+                const selectedGroups = null;  /* à compléter */
+
+                await processPinData(currentTab, pinData); // récup des données en base ou des données de la page
+                await processSiteData(currentTabSite, siteData); // récup des données en base ou des données de la page
+                await processDomainsData(domainsData, selectedDomain);
+                await processTagsData(tagsData, selectedTags);
+                await processGroupsData(groupsData, selectedGroups);
+                await setAccordionItem();
+                spinnerContainer.style.display = "none";
+            });
+        chrome.runtime.sendMessage({action: "getSiteData", params: {site: currentTabSite}}, async (siteData) => {
+            await processSiteData(currentTabSite, siteData);
         });
-    } catch
-        (error) {
-        console.error("Error:", error);
+
+        setListenerOnBtns();
+        setListenertOnImgUrlInput();
+        setListenerOnDomainItems();
+        setListenerOnStars();
+        setListenerOnForm();
     }
 
-    async function setAccordionItem() {
-        const accordionItemHeaders = document.querySelectorAll(".accordion-item-header");
-        accordionItemHeaders.forEach(accordionItemHeader => {
-            accordionItemHeader.addEventListener("click", event => {
-                // Uncomment in case you only want to allow for the display of only one collapsed item at a time!
-                const currentlyActiveAccordionItemHeader = document.querySelector(".accordion-item-header.active");
-                if (currentlyActiveAccordionItemHeader && currentlyActiveAccordionItemHeader !== accordionItemHeader) {
-                    currentlyActiveAccordionItemHeader.classList.toggle("active");
-                    currentlyActiveAccordionItemHeader.nextElementSibling.style.maxHeight = 0;
-                }
+    spinnerContainer.style.display = "block";
+    await initialize();
+    //test1()
+    spinnerContainer.style.display = "none";
 
-                accordionItemHeader.classList.toggle("active");
-                const accordionItemBody = accordionItemHeader.nextElementSibling;
-                if (accordionItemHeader.classList.contains("active")) {
-                    accordionItemBody.style.maxHeight = accordionItemBody.scrollHeight + "px";
-                } else {
-                    accordionItemBody.style.maxHeight = 0;
-                }
+    function test1() {
+        chrome.runtime.sendMessage({
+            //action: "test",
+            action: "getThumbnail",
+            params: {
+                url: "https://www.cmath.fr/3eme/fonctions/exercice12.php",
+             }
+        }, (response) => {
+            if (response.success) {
+               // window.close();
+                console.log(response.retour);
+                console.log(response.param);
 
-            });
-        })
-    };
-})
-;
+            } else {
+                //spinnerContainer.style.display = "none";
+                alert("An error occurred. Please try again." + response);
+            }
+        });
+    }
+
+
+
+});
