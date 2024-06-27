@@ -41,6 +41,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             window.close();
         });
     }
+
     function setListenerOnStars () {
         function updateStars(new_value) {
             stars.forEach((star, index) => {
@@ -206,37 +207,39 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
     async function processTagsData(tagsData, selectedTags) {
         try {
-            const tags = tagsData.records.toSorted((a, b) => {
-                const nameA = a.fields.name.toLowerCase();
-                const nameB = b.fields.name.toLowerCase();
+            if (tagsData != undefined && tagsData.length>0) {
+                const tags = tagsData.records.toSorted((a, b) => {
+                    const nameA = a.fields.name.toLowerCase();
+                    const nameB = b.fields.name.toLowerCase();
 
-                if (nameA < nameB) return -1;
-                if (nameA > nameB) return 1;
-                return 0;
-            });
+                    if (nameA < nameB) return -1;
+                    if (nameA > nameB) return 1;
+                    return 0;
+                });
 
-            tagsDiv.innerHTML = ""
-            for (const tag of tags) {
-                if (tag.fields.name != undefined) {
-                    const newTagDiv = document.createElement("div");
-                    const checkbox = document.createElement("input");
-                    checkbox.type = "checkbox";
-                    checkbox.name = "tags";
-                    checkbox.value = tag.id;
-                    checkbox.id = tag.id;
-                    //
-                    if (selectedTags != undefined && selectedTags.length != 0) {
-                        checkbox.checked = selectedTags.includes(tag.fields.name);
+                tagsDiv.innerHTML = ""
+                for (const tag of tags) {
+                    if (tag.fields.name != undefined) {
+                        const newTagDiv = document.createElement("div");
+                        const checkbox = document.createElement("input");
+                        checkbox.type = "checkbox";
+                        checkbox.name = "tags";
+                        checkbox.value = tag.id;
+                        checkbox.id = tag.id;
+                        //
+                        if (selectedTags != undefined && selectedTags.length != 0) {
+                            checkbox.checked = selectedTags.includes(tag.fields.name);
+                        }
+
+                        const checkboxLabel = document.createElement("label");
+                        checkboxLabel.htmlFor = tag.id;
+                        checkboxLabel.innerText = tag.fields.name;
+
+                        newTagDiv.appendChild(checkbox);
+                        newTagDiv.appendChild(checkboxLabel);
+
+                        tagsDiv.append(newTagDiv)
                     }
-
-                    const checkboxLabel = document.createElement("label");
-                    checkboxLabel.htmlFor = tag.id;
-                    checkboxLabel.innerText = tag.fields.name;
-
-                    newTagDiv.appendChild(checkbox);
-                    newTagDiv.appendChild(checkboxLabel);
-
-                    tagsDiv.append(newTagDiv)
                 }
             }
         } catch (error) {
@@ -379,18 +382,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         spinnerContainer.style.display = "none";
     }
 
-    async function processSiteData(currentTabSite, siteData) {
-        try {
-            site.value = currentTabSite;
-            newSite.value = true;
-            if (siteData != undefined) {
-                newSite.value = false;
-                siteRating.value = siteData.records[0].fields.site_rating;
-            }
-        } catch (error) {
-            console.error("Error handling site data:", error);
-        }
-    }
+
 
     async function createSite(siteData) {
         try {
@@ -656,16 +648,27 @@ document.addEventListener("DOMContentLoaded", async function () {
             {
                 action: "getData",
                 params: {url: currentTabUrl, site: currentTabSite}
-            }, async (domainsData, siteData, pinData, tagsData, groupsData) => {
-                const selectedDomain = null;  /* à compléter */
-                const selectedTags = null; /* à compléter */
-                const selectedGroups = null;  /* à compléter */
+            }, async (data) => {
+                console.log(`action: "getData"`)
+                const selectedDomain = [];  //TODO
+                const selectedTags = []; //TODO
+                const selectedGroups = [];  //TODO
 
-                await processPinData(currentTab, pinData); // récup des données en base ou des données de la page
-                await processSiteData(currentTabSite, siteData); // récup des données en base ou des données de la page
-                await processDomainsData(domainsData, selectedDomain);
-                await processTagsData(tagsData, selectedTags);
-                await processGroupsData(groupsData, selectedGroups);
+                console.log("domainsData");
+                console.log(data.domainsData);
+                console.log("siteData");
+                console.log(data.siteData);
+                console.log("pinData");
+                console.log(data.pinData)
+                console.log("tagsData");
+                console.log(data.tagsData)
+                console.log("groupsData");
+                console.log(data.groupsData);
+                await processPinData(currentTab, data.pinData); // récup des données en base ou des données de la page
+                await processSiteData(currentTabSite, data.siteData); // récup des données en base ou des données de la page
+                await processDomainsData(data.domainsData, selectedDomain);
+                await processTagsData(data.tagsData, selectedTags);
+                await processGroupsData(data.groupsData, selectedGroups);
                 await setAccordionItem();
                 spinnerContainer.style.display = "none";
             });

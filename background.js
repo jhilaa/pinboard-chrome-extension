@@ -2,13 +2,16 @@ chrome.runtime.onInstalled.addListener(() => {
     console.log("Extension installed");
 });
 
+let isRunning = false;
+
 // Fonction pour obtenir l'onglet actif
 async function getActiveTab() {
     //let queryOptions = { active: true, currentWindow: true };
-    let queryOptions = { active: true};
+    console.log("getActiveTab()");
+    let queryOptions = {active: true};
     let tabs = await chrome.tabs.query(queryOptions);
-    let tabs1=await chrome.tabs.query({ active: true});
-    let tabs2=await chrome.tabs.query({ currentWindow: true});
+    let tabs1 = await chrome.tabs.query({active: true});
+    let tabs2 = await chrome.tabs.query({currentWindow: true});
     console.log("Tabs returned:", tabs); // Ajoutez cette ligne pour loguer les onglets retournés
     if (tabs.length === 0) {
         console.error("No active tab found.");
@@ -19,6 +22,7 @@ async function getActiveTab() {
 
 async function getActiveTabUrl() {
     try {
+        console.log("getActiveTabUrl()");
         const tab = await getActiveTab();
         if (!tab) {
             throw new Error("No active tab found.");
@@ -32,11 +36,12 @@ async function getActiveTabUrl() {
 
 async function getThumbnail(url) {
     try {
+        console.log("getThumbnail()");
         const tab = await getActiveTab();
         if (!tab) {
             throw new Error("No active tab found.");
         }
-        const response = await chrome.tabs.sendMessage(tab.id, { action: 'getThumbnail', url: url });
+        const response = await chrome.tabs.sendMessage(tab.id, {action: 'getThumbnail', url: url});
         return response.thumbnail;
     } catch (error) {
         console.error("Error fetching thumbnail:", error);
@@ -47,10 +52,13 @@ async function getThumbnail(url) {
 async function fetchData(endpoint, headers) {
     const apiUrlBase = "https://api.airtable.com/v0/app7zNJoX11DY99UA/";
     try {
-        const response = await fetch(apiUrlBase + endpoint, { headers });
+        const request = apiUrlBase + endpoint;
+        console.log("fetchData : request")
+        console.log("request : " + request)
+        const response = await fetch(request, {headers});
         return await response.json();
     } catch (error) {
-        console.error(`Error fetching ${endpoint}:`, error);
+        console.error(`Error fetching ${request}:`, error);
         throw error;
     }
 }
@@ -60,76 +68,102 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const headers = new Headers({
         "Authorization": `Bearer ${token}`
     });
+    console.log("Message : " + message)
+    console.log("Sender : " + sender)
 
     async function handleMessage() {
+        console.log("handleMessage ---------")
         const url = await getActiveTabUrl();
         if (!url && message.action !== "handleFormSubmit") {
-            sendResponse({ error: "Unable to get active tab URL." });
+            sendResponse({error: "Unable to get active tab URL."});
             return;
         }
 
         switch (message.action) {
             case "test":
-                sendResponse({ success: true, retour: "ok", param: message.params.p1 });
+                try {
+                    console.log("case test");
+                    sendResponse({success: true, retour: "ok", param: message.params.p1});
+                } catch (error) {
+                    sendResponse({error: error.message});
+                }
                 break;
             case "getThumbnail":
+                console.log("case getThumbnail");
                 try {
+                    console.log("getThumbnail");
                     const thumbnail = await getThumbnail(url);
                     sendResponse(thumbnail);
                 } catch (error) {
-                    sendResponse({ error: error.message });
+                    sendResponse({error: error.message});
                 }
                 break;
             case "getPinData":
                 try {
+                    console.log("case getPinData");
                     const filterField = 'url';
-                    const filterValue = "^" + message.url.replace(/[|\\{}()[\]^$+*?.\/]/g, '\\$&') + "$";
+                    const filterValue = "^" + message.params.url.replace(/[|\\{}()[\]^$+*?.\/]/g, '\\$&') + "$";
                     const filterFormula = `REGEX_MATCH({${filterField}}, "${filterValue}")`;
                     const pinData = await fetchData(`pins?filterByFormula=${encodeURIComponent(filterFormula)}`, headers);
                     sendResponse(pinData);
                 } catch (error) {
-                    sendResponse({ error: error.message });
+                    sendResponse({error: error.message});
                 }
                 break;
             case "getSiteData":
                 try {
-                    const siteData = await fetchData(`Sites?filterByFormula=AND({site}='${message.site}')`, headers);
+                    console.log("case getSiteData");
+                    console.log(`Sites?filterByFormula=AND({site}='${message.params.site}')`)
+                    const siteData = await fetchData(`Sites?filterByFormula=AND({site}='${message.params.site}')`, headers);
                     sendResponse(siteData);
                 } catch (error) {
-                    sendResponse({ error: error.message });
+                    sendResponse({error: error.message});
                 }
                 break;
             case "getData":
                 try {
-                    const siteFilterFormula = `AND({site}='${message.site}')`;
+                    console.log("case getData");
+                    //const siteFilterFormula = `AND({site}='${message.params.site}')`;
                     const pinFilterField = 'url';
-                    const pinFilterValue = "^" + message.url.replace(/[|\\{}()[\]^$+*?.\/]/g, '\\$&') + "$";
-                    const pinFilterFormula = `REGEX_MATCH({${pinFilterField}}, "${pinFilterValue}")`;
+                    //const pinFilterValue = "^" + message.params.url.replace(/[|\\{}()[\]^$+*?.\/]/g, '\\$&') + "$";
+                    //const siteFilterValue = "^" + message.params.site.replace(/[|\\{}()[\]^$+*?.\/]/g, '\\$&') + "$";
+                    //const pinFilterFormula = `REGEX_MATCH({${pinFilterField}}, "${pinFilterValue}")`;
+                    //const pinFilterFormula = `REGEX_MATCH({url}, "${pinFilterValue}")`;
+                    //const siteFilterFormula = `REGEX_MATCH({url}, "${siteFilterValue}")`;
 
-                    const [siteData, pinData, domainData] = await Promise.all([
-                        fetchData(`Sites?filterByFormula=${encodeURIComponent(siteFilterFormula)}`, headers),
-                        fetchData(`pins?filterByFormula=${encodeURIComponent(pinFilterFormula)}`, headers),
+                    //https://api.airtable.com/v0/app7zNJoX11DY99UA/Sites?filterByFormula=AND({domain}="Maths",{site}='edubase.eduscol.education.fr')
+
+                    console.log("sites  ++++++++++++++++++++++++");
+                    console.log("sites?filterByFormula=AND({site}='" + message.params.site + "')");
+                    console.log("pins  ++++++++++++++++++++++++");
+                    console.log("pins?filterByFormula=AND({url}='" + message.params.url + "')");
+
+
+                    const [siteData, pinData, domainsData] = await Promise.all([
+                        fetchData("sites?filterByFormula=AND({site}='" + message.params.site + "')", headers),
+                        fetchData("pins?filterByFormula=AND({url}='" + message.params.url + "')", headers),
                         fetchData("domains", headers)
                     ]);
 
-                    if (pinData.length > 0 && pinData[0].fields && pinData[0].fields.domain) {
-                        const domain = pinData[0].fields.domain;
+                    if (pinData.records != undefined && pinData.records.length > 0 && pinData.records[0].fields && pinData.records[0].fields.domain) {
+                        const domain = pinData.records[0].fields.domain;
 
                         const [tagsData, groupsData] = await Promise.all([
                             fetchData(`tags?filterByFormula=AND({domain}='${domain}')`, headers),
                             fetchData(`groups?filterByFormula=AND({domain}='${domain}')`, headers)
                         ]);
 
-                        sendResponse({ siteData, pinData, domainData, tagsData, groupsData });
+                        sendResponse({siteData, pinData, domainsData, tagsData, groupsData});
                     } else {
-                        sendResponse({ siteData, pinData, domainData });
+                        sendResponse({siteData, pinData, domainsData, undefined, undefined});
                     }
                 } catch (error) {
-                    sendResponse({ error: error.message });
+                    sendResponse({error: error.message});
                 }
                 break;
             case "handleFormSubmit":
                 try {
+                    console.log("handleFormSubmit")
                     const params = message.params;
                     const formData = Object.fromEntries(params.formData.entries());
                     const selectedTags = formData.tags ? formData.tags.split(',') : [];
@@ -138,7 +172,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     let siteId;
 
                     if (formData.new_site === "true") {
-                        const siteResponse = await fetch("https://api.airtable.com/v0/app7zNJoX11DY99UA/Sites", {
+                        const siteResponse = await fetchData("Sites", {
                             method: "POST",
                             headers: {
                                 "Authorization": `Bearer ${token}`,
@@ -161,7 +195,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         siteId = formData.site_id;
                     }
 
-                    const pinResponse = await fetch("https://api.airtable.com/v0/app7zNJoX11DY99UA/Pins", {
+                    const pinResponse = await fetchData("Pins", {
                         method: formData.action === "add" ? "POST" : "PATCH",
                         headers: {
                             "Authorization": `Bearer ${token}`,
@@ -187,13 +221,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     });
 
                     const pinData = await pinResponse.json();
-                    sendResponse({ success: true, data: pinData });
+                    sendResponse({success: true, data: pinData});
                 } catch (error) {
-                    sendResponse({ success: false, error: error.message });
+                    sendResponse({success: false, error: error.message});
                 }
                 break;
             default:
-                sendResponse({ error: "Invalid action" });
+                sendResponse({error: "Invalid action"});
         }
 
         return true; // Indiquer que la réponse sera envoyée de manière asynchrone
@@ -205,18 +239,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
     console.log("onActivated ------------------");
-    const url = await getActiveTabUrl();
-    if (url) {
-        console.log("Active Tab URL: " + url);
+    if (!isRunning) {
+        isRunning = true;
+        const url = await getActiveTabUrl();
+        if (url) {
+            console.log("Active Tab URL (2) : " + url);
+        }
+        isRunning = false;
     }
 });
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     console.log("onUpdated ------------------");
-    if (changeInfo.status === 'complete') {
-        const url = await getActiveTabUrl();
-        if (url) {
-            console.log("Active Tab URL: " + url);
+    if (!isRunning) {
+        isRunning = true;
+        if (changeInfo.status === 'complete') {
+            const url = await getActiveTabUrl();
+            if (url) {
+                console.log("Active Tab URL (3) : " + url);
+            }
         }
+        isRunning = false;
     }
-});
+})
+;
