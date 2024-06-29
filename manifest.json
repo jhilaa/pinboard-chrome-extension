@@ -8,7 +8,8 @@
     "activeTab",
     "cookies",
     "sidePanel",
-    "webNavigation"
+    "webNavigation",
+    "https://api.airtable.com/"
   ],
   "side_panel": {
     "default_path": "popup.html"
@@ -34,8 +35,8 @@
     }
   },
   "icons": {
-    "16": "./public/icone16.png",
-    "48": "./public/icone48.png",
-    "128": "./public/icone128.png"
+    "16": "./public/run16.png",
+    "48": "./public/run48.png",
+    "128": "./public/run128.png"
   }
 }

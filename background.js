@@ -1,42 +1,49 @@
-chrome.runtime.onInstalled.addListener(() => {
-    console.log("Extension installed");
-});
+
+//TODO passer par l'api render
+const apiKey = "pateoiLGxeeOa1bbO.7d97dd01a0d5282f7e4d3b5fff9c9e10d2023d3a34b1811e1152a97182c2238d";
+const baseUrl = "https://api.airtable.com/v0/app7zNJoX11DY99UA";
+const config = {
+    headers: {
+        'Authorization': `Bearer ${apiKey}`,
+    },
+};
 
 let isRunning = false;
 
-// Fonction pour obtenir l'onglet actif
+
+// Get the active tab
 async function getActiveTab() {
-    //let queryOptions = { active: true, currentWindow: true };
-    console.log("getActiveTab()");
-    let queryOptions = {active: true};
-    let tabs = await chrome.tabs.query(queryOptions);
-    let tabs1 = await chrome.tabs.query({active: true});
-    let tabs2 = await chrome.tabs.query({currentWindow: true});
-    console.log("Tabs returned:", tabs); // Ajoutez cette ligne pour loguer les onglets retournés
-    if (tabs.length === 0) {
-        console.error("No active tab found.");
+    try {
+        let queryOptions = {active: true, currentWindow: true};
+        let tabs = await chrome.tabs.query(queryOptions);
+        if (tabs.length === 0) {
+            console.error("No active tab found.");
+            return null;
+        }
+        return tabs[0];
+    } catch (error) {
+        console.error("Error in getActiveTab:", error);
         return null;
     }
-    return tabs[0];
 }
 
+// Get the active tab's URL
 async function getActiveTabUrl() {
     try {
-        console.log("getActiveTabUrl()");
         const tab = await getActiveTab();
         if (!tab) {
             throw new Error("No active tab found.");
         }
         return tab.url;
     } catch (error) {
-        console.error("getActiveTabUrl error: " + error);
+        console.error("getActiveTabUrl error:", error);
         return null;
     }
 }
 
+// Fetch a thumbnail for a given URL
 async function getThumbnail(url) {
     try {
-        console.log("getThumbnail()");
         const tab = await getActiveTab();
         if (!tab) {
             throw new Error("No active tab found.");
@@ -49,217 +56,186 @@ async function getThumbnail(url) {
     }
 }
 
-async function fetchData(endpoint, headers) {
-    const apiUrlBase = "https://api.airtable.com/v0/app7zNJoX11DY99UA/";
+// Fetch data from the API and store it locally
+async function fetchDataAndStore() {
+    console.log("fetchDataAndStore called");
+    chrome.action.setIcon({path: "public/run16.png"});
+
+    await chrome.storage.local.set({
+        pins: null,
+        tags: null,
+        domains: null,
+        sites: null,
+        groups: null,
+        'data-ready': false
+    });
+    console.log("Initial storage values set");
+
     try {
-        const request = apiUrlBase + endpoint;
-        console.log("fetchData : request")
-        console.log("request : " + request)
-        const response = await fetch(request, {headers});
-        return await response.json();
+        const [pinResponse, tagResponse, domainResponse, groupResponse, siteResponse] = await Promise.all([
+            fetch(`${baseUrl}/pins`, config),
+            fetch(`${baseUrl}/tags`, config),
+            fetch(`${baseUrl}/domains`, config),
+            fetch(`${baseUrl}/groups`, config),
+            fetch(`${baseUrl}/sites`, config),
+        ]);
+
+        if (!pinResponse.ok || !tagResponse.ok || !domainResponse.ok || !groupResponse.ok || !siteResponse.ok) {
+            throw new Error('One or more requests failed');
+        }
+
+        const [pinData, tagData, domainData, groupData, siteData] = await Promise.all([
+            pinResponse.json(),
+            tagResponse.json(),
+            domainResponse.json(),
+            groupResponse.json(),
+            siteResponse.json()
+        ]);
+
+        console.log("Data fetched:", {pinData, tagData, domainData, groupData, siteData});
+
+        await chrome.storage.local.set({
+            pins: pinData,
+            tags: tagData,
+            domains: domainData,
+            sites: siteData,
+            groups: groupData,
+            'data-ready': true
+        });
+
+        console.log("Data stored in local storage");
+        chrome.runtime.sendMessage({type: 'data-ready'});
+        chrome.action.setIcon({path: "public/icone16.png"});
     } catch (error) {
-        console.error(`Error fetching ${request}:`, error);
+        console.error("Error fetching data:", error);
+    }
+}
+
+// Handle form submission
+async function handleFormSubmit(params) {
+    const formData = Object.fromEntries(params.formData.entries());
+    const selectedTags = formData.tags ? formData.tags.split(',') : [];
+    const selectedDomains = formData.domains ? formData.domains.split(',') : [];
+
+    let siteId;
+    try {
+        if (formData.new_site === "true") {
+            const siteResponse = await fetch(`${baseUrl}/Sites`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${apiKey}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    records: [{
+                        fields: {
+                            site: formData.site,
+                            site_rating: formData.site_rating || "0",
+                            domain: selectedDomains
+                        }
+                    }]
+                })
+            });
+
+            const siteData = await siteResponse.json();
+            siteId = siteData.records[0].id;
+        } else {
+            siteId = formData.site_id;
+        }
+
+        const pinResponse = await fetch(`${baseUrl}/Pins`, {
+            method: formData.action === "add" ? "POST" : "PATCH",
+            headers: {
+                "Authorization": `Bearer ${apiKey}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                records: [{
+                    id: formData.action === "update" ? formData.pin_id : undefined,
+                    fields: {
+                        name: formData.title,
+                        rating: formData.rating,
+                        url: formData.url,
+                        site: [siteId],
+                        description: formData.comment || "",
+                        img_url: formData.img_url,
+                        tags: selectedTags,
+                        domain: selectedDomains,
+                        groups: params.checkedGroups,
+                        status: formData.status === "on" ? "1" : "0"
+                    }
+                }]
+            })
+        });
+
+        const pinData = await pinResponse.json();
+        return pinData;
+    } catch (error) {
+        console.error("Error in handleFormSubmit:", error);
         throw error;
     }
 }
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    const token = "pateoiLGxeeOa1bbO.7d97dd01a0d5282f7e4d3b5fff9c9e10d2023d3a34b1811e1152a97182c2238d";
-    const headers = new Headers({
-        "Authorization": `Bearer ${token}`
-    });
-    console.log("Message : " + message)
-    console.log("Sender : " + sender)
+// Event listeners
+chrome.runtime.onStartup.addListener(fetchDataAndStore);
+chrome.runtime.onInstalled.addListener(fetchDataAndStore);
 
-    async function handleMessage() {
-        console.log("handleMessage ---------")
+chrome.tabs.onActivated.addListener(async () => {
+    if (!isRunning) {
+        isRunning = true;
         const url = await getActiveTabUrl();
-        if (!url && message.action !== "handleFormSubmit") {
-            sendResponse({error: "Unable to get active tab URL."});
-            return;
+        if (url) {
+            console.log("Active Tab URL:", url);
         }
+        isRunning = false;
+    }
+});
 
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
+    if (!isRunning && changeInfo.status === 'complete') {
+        isRunning = true;
+        const url = await getActiveTabUrl();
+        if (url) {
+            console.log("Active Tab URL:", url);
+        }
+        isRunning = false;
+    }
+});
+
+// Message handler
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    (async () => {
         switch (message.action) {
             case "test":
+                sendResponse({success: true, retour: "ok", param: message.params.p1});
+                break;
+            case 'fetchDataAndStore':
                 try {
-                    console.log("case test");
-                    sendResponse({success: true, retour: "ok", param: message.params.p1});
+                    await fetchDataAndStore();
+                    sendResponse({status: 'success'});
                 } catch (error) {
-                    sendResponse({error: error.message});
+                    sendResponse({status: 'error', message: error.message});
                 }
                 break;
             case "getThumbnail":
-                console.log("case getThumbnail");
                 try {
-                    console.log("getThumbnail");
-                    const thumbnail = await getThumbnail(url);
+                    const thumbnail = await getThumbnail(await getActiveTabUrl());
                     sendResponse(thumbnail);
-                } catch (error) {
-                    sendResponse({error: error.message});
-                }
-                break;
-            case "getPinData":
-                try {
-                    console.log("case getPinData");
-                    const filterField = 'url';
-                    const filterValue = "^" + message.params.url.replace(/[|\\{}()[\]^$+*?.\/]/g, '\\$&') + "$";
-                    const filterFormula = `REGEX_MATCH({${filterField}}, "${filterValue}")`;
-                    const pinData = await fetchData(`pins?filterByFormula=${encodeURIComponent(filterFormula)}`, headers);
-                    sendResponse(pinData);
-                } catch (error) {
-                    sendResponse({error: error.message});
-                }
-                break;
-            case "getSiteData":
-                try {
-                    console.log("case getSiteData");
-                    console.log(`Sites?filterByFormula=AND({site}='${message.params.site}')`)
-                    const siteData = await fetchData(`Sites?filterByFormula=AND({site}='${message.params.site}')`, headers);
-                    sendResponse(siteData);
-                } catch (error) {
-                    sendResponse({error: error.message});
-                }
-                break;
-            case "getData":
-                try {
-                    console.log("case getData");
-                    //const siteFilterFormula = `AND({site}='${message.params.site}')`;
-                    const pinFilterField = 'url';
-                    //const pinFilterValue = "^" + message.params.url.replace(/[|\\{}()[\]^$+*?.\/]/g, '\\$&') + "$";
-                    //const siteFilterValue = "^" + message.params.site.replace(/[|\\{}()[\]^$+*?.\/]/g, '\\$&') + "$";
-                    //const pinFilterFormula = `REGEX_MATCH({${pinFilterField}}, "${pinFilterValue}")`;
-                    //const pinFilterFormula = `REGEX_MATCH({url}, "${pinFilterValue}")`;
-                    //const siteFilterFormula = `REGEX_MATCH({url}, "${siteFilterValue}")`;
-
-                    //https://api.airtable.com/v0/app7zNJoX11DY99UA/Sites?filterByFormula=AND({domain}="Maths",{site}='edubase.eduscol.education.fr')
-
-                    console.log("sites  ++++++++++++++++++++++++");
-                    console.log("sites?filterByFormula=AND({site}='" + message.params.site + "')");
-                    console.log("pins  ++++++++++++++++++++++++");
-                    console.log("pins?filterByFormula=AND({url}='" + message.params.url + "')");
-
-
-                    const [siteData, pinData, domainsData] = await Promise.all([
-                        fetchData("sites?filterByFormula=AND({site}='" + message.params.site + "')", headers),
-                        fetchData("pins?filterByFormula=AND({url}='" + message.params.url + "')", headers),
-                        fetchData("domains", headers)
-                    ]);
-
-                    if (pinData.records != undefined && pinData.records.length > 0 && pinData.records[0].fields && pinData.records[0].fields.domain) {
-                        const domain = pinData.records[0].fields.domain;
-
-                        const [tagsData, groupsData] = await Promise.all([
-                            fetchData(`tags?filterByFormula=AND({domain}='${domain}')`, headers),
-                            fetchData(`groups?filterByFormula=AND({domain}='${domain}')`, headers)
-                        ]);
-
-                        sendResponse({siteData, pinData, domainsData, tagsData, groupsData});
-                    } else {
-                        sendResponse({siteData, pinData, domainsData, undefined, undefined});
-                    }
                 } catch (error) {
                     sendResponse({error: error.message});
                 }
                 break;
             case "handleFormSubmit":
                 try {
-                    console.log("handleFormSubmit")
-                    const params = message.params;
-                    const formData = Object.fromEntries(params.formData.entries());
-                    const selectedTags = formData.tags ? formData.tags.split(',') : [];
-                    const selectedDomains = formData.domains ? formData.domains.split(',') : [];
-
-                    let siteId;
-
-                    if (formData.new_site === "true") {
-                        const siteResponse = await fetchData("Sites", {
-                            method: "POST",
-                            headers: {
-                                "Authorization": `Bearer ${token}`,
-                                "Content-Type": "application/json"
-                            },
-                            body: JSON.stringify({
-                                records: [{
-                                    fields: {
-                                        site: formData.site,
-                                        site_rating: formData.site_rating || "0",
-                                        domain: selectedDomains
-                                    }
-                                }]
-                            })
-                        });
-
-                        const siteData = await siteResponse.json();
-                        siteId = siteData.records[0].id;
-                    } else {
-                        siteId = formData.site_id;
-                    }
-
-                    const pinResponse = await fetchData("Pins", {
-                        method: formData.action === "add" ? "POST" : "PATCH",
-                        headers: {
-                            "Authorization": `Bearer ${token}`,
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            records: [{
-                                id: formData.action === "update" ? formData.pin_id : undefined,
-                                fields: {
-                                    name: formData.title,
-                                    rating: formData.rating,
-                                    url: formData.url,
-                                    site: [siteId],
-                                    description: formData.comment || "",
-                                    img_url: formData.img_url,
-                                    tags: selectedTags,
-                                    domain: selectedDomains,
-                                    groups: message.checkedGroups,
-                                    status: formData.status === "on" ? "1" : "0"
-                                }
-                            }]
-                        })
-                    });
-
-                    const pinData = await pinResponse.json();
+                    const pinData = await handleFormSubmit(message.params);
                     sendResponse({success: true, data: pinData});
                 } catch (error) {
                     sendResponse({success: false, error: error.message});
                 }
                 break;
             default:
-                sendResponse({error: "Invalid action"});
+                sendResponse({error: "Invalid action " + message.action});
         }
-
-        return true; // Indiquer que la réponse sera envoyée de manière asynchrone
-    }
-
-    handleMessage();
-    return true; // Indiquer que la réponse sera envoyée de manière asynchrone
+    })();
+    return true; // Indicate that the response is async
 });
-
-chrome.tabs.onActivated.addListener(async (activeInfo) => {
-    console.log("onActivated ------------------");
-    if (!isRunning) {
-        isRunning = true;
-        const url = await getActiveTabUrl();
-        if (url) {
-            console.log("Active Tab URL (2) : " + url);
-        }
-        isRunning = false;
-    }
-});
-
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-    console.log("onUpdated ------------------");
-    if (!isRunning) {
-        isRunning = true;
-        if (changeInfo.status === 'complete') {
-            const url = await getActiveTabUrl();
-            if (url) {
-                console.log("Active Tab URL (3) : " + url);
-            }
-        }
-        isRunning = false;
-    }
-})
-;
