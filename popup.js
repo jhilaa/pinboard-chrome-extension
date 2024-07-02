@@ -1,4 +1,9 @@
 document.addEventListener("DOMContentLoaded", async function () {
+    const token = "pateoiLGxeeOa1bbO.7d97dd01a0d5282f7e4d3b5fff9c9e10d2023d3a34b1811e1152a97182c2238d"; // Replace with your Bearer Token
+    const headers = new Headers({
+        "Authorization": `Bearer ${token}`
+    });
+
     const stars = document.querySelectorAll('.star');
     const form = document.getElementById("addForm");
     const status = document.getElementById('status');
@@ -14,130 +19,714 @@ document.addEventListener("DOMContentLoaded", async function () {
     const site = document.getElementById("site");
     const newSite = document.getElementById("new_site");
     const siteRating = document.getElementById("site_rating");
+    const refreshButton = document.getElementById("refreshButton");
+    const message = document.getElementById("message");
     let checkedGroups;
 
-    const messageElement = document.getElementById('message');
-    const refreshButton = document.getElementById('refreshButton');
+    content.style.display = "block";
 
-    function refreshPopupWithStorageData() {
-        messageElement.textContent = "Loading";
-        chrome.storage.local.get(['sites', 'domains', 'tags', 'groups', 'pins', 'data-ready'], async (result) => {
-            console.log("Retrieved storage values: ", result);
-            if (result['data-ready']) {
-                messageElement.textContent = "Data loaded";
-                const currentTab = await getCurrentTab();
-                const currentTabUrl = currentTab.url;
-                const currentTabSite = getSiteFromUrl(currentTabUrl);
-                await processDomainsData(result.domains.records, undefined);
-                await setAccordionItem();
+    //*********************************
+    //***** Evenements  ***************
+    //********************************
+    // evenement sur le champ adresse
+    if (document.querySelector('input[name="domain"]')) {
+        document.querySelectorAll('input[name="domain"]').forEach((elem) => {
+            elem.addEventListener("change", function (event) {
+                const item = event.target.value;
+                console.log(item);
+            });
+        });
+    }
+
+    refreshButton.addEventListener("click", (e)=> {
+        chrome.runtime.sendMessage({ action: 'fetchDataAndStore' }, (response) => {
+            if (response.status === 'success') {
+                message.textContent = 'Data fetched and stored successfully!';
             } else {
-                messageElement.textContent = "No data found";
+                message.textContent = 'Error: ' + response.message;
+            }
+        });
+    })
+
+    // evenement sur le zone de saisie image
+    imgUrl.addEventListener("input", (e) => {
+        e.preventDefault();
+        const imgElement = document.getElementById("img")
+        imgElement.src = imgUrl.value;
+    })
+
+    // événement sur le bouton annuler
+    cancelButton.addEventListener("click", function () {
+        // Close the popup window
+        window.close();
+    });
+
+    // événement sur les étoiles
+    stars.forEach(star => {
+        star.addEventListener('click', () => {
+            let old_value = parseInt(rating.value);
+            let new_value = parseInt(star.getAttribute('data-value'));
+
+            if (old_value == 1 && new_value == 1) {
+                new_value = 0;
+            }
+            rating.value = new_value;
+            updateStars(0, new_value);
+        });
+    })
+
+
+    //*********************************
+    //**** evenement sur les onglets **
+    //*********************************
+    /**
+     chrome.runtime.onMessage.addListener(async function (message, sender, sendResponse) {
+        if (message.action === "updateUrl") {
+            const tab = message.tab
+            const url = tab.url;
+            const title = tab.title;
+            const pinData = await getPinData(url);
+            await processPinData(tab, pinData); // récup des données en base ou des données de la page
+            await createFormItems(pinData)
+        }
+    });
+     */
+
+    //*********************************
+    //***** utils    ***************
+    //*********************************
+    function getSiteFromUrl(url) {
+        let parsedURL = "";
+        try {
+            parsedURL = new URL(url);
+            return parsedURL.hostname.replace(/^www\./, '');
+        } catch {
+            parsedURL.replace(/^https:\/\//, '');
+            parsedURL.replace(/^http\/\//, '');
+            parsedURL.replace(/^www\./, '');
+            return parsedURL
+        }
+    }
+
+    function updateStars(old_value, new_value) {
+        stars.forEach((star, index) => {
+            if (index < new_value) {
+                star.classList.add('bi-star-fill');
+                star.classList.remove('bi-star');
+            } else {
+                star.classList.add('bi-star');
+                star.classList.remove('bi-star-fill');
             }
         });
     }
 
-    function launchRefreshData(response) {
-        console.log("type: 'launchRefreshData'");
-        console.log("Response received:", response);
-        if (response && response.status) {
-            console.log("fetchDataAndStore called successfully");
-            refreshPopupWithStorageData();
-        } else {
-            console.error("Error calling launchRefreshData");
-        }
-    }
-
-    function callForDataFromBackground() {
-        chrome.runtime.sendMessage({ action: 'fetchDataAndStore' }, async (response) => {
-            await launchRefreshData(response);
-        });
-    }
-
-    function setListenerOnDomainItems() {
-        if (document.querySelector('input[name="domain"]')) {
-            document.querySelectorAll('input[name="domain"]').forEach((elem) => {
-                elem.addEventListener("change", function (event) {
-                    const item = event.target.value;
-                    console.log(item);
+    //************************************
+    //***** Construction de la pop up  ***
+    //************************************
+    async function getDataFromStorage(key) {
+        try {
+            const result = await new Promise((resolve, reject) => {
+                chrome.storage.local.get([key], (result) => {
+                    if (chrome.runtime.lastError) {
+                        reject(chrome.runtime.lastError);
+                    } else {
+                        resolve(result[key]);
+                    }
                 });
             });
+            return result;
+        } catch (error) {
+            console.error("Error retrieving data from storage:", error);
         }
     }
 
-    function setListenerOnImgUrlInput() {
-        imgUrl.addEventListener("input", (e) => {
-            e.preventDefault();
+    async function getCurrentTab() {
+        return new Promise((resolve, reject) => {
+            const queryOptions = {active: true, currentWindow: true};
+            chrome.tabs.query(queryOptions, (tabs) => {
+                const currentTab = tabs[0];
+                if (currentTab) {
+                    resolve(currentTab);
+                } else {
+                    reject(new Error("No active tab found."));
+                }
+            });
+        });
+    };
+
+    async function getThumbnail(url) {
+        try {
+            const response = await fetch(url);
+            const html = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const ogImage = doc.querySelector('meta[property="og:image"]');
+            if (ogImage) {
+                const thumbnailUrl = ogImage.getAttribute('content');
+                console.log("Thumbnail URL:", thumbnailUrl);
+                return thumbnailUrl;
+            } else {
+                console.log("No Open Graph image found.");
+                return "https://img.freepik.com/free-vector/colorful-pastel-poly-background_53876-62618.jpg?size=626&ext=jpg";
+            }
+        } catch (error) {
+            console.error("Error fetching thumbnail:", error);
+            return "https://img.freepik.com/free-vector/colorful-pastel-poly-background_53876-62618.jpg?size=626&ext=jpg";
+        }
+    }
+
+    // info domaines pour construire les radiobouton
+    async function getDomainsData() {
+        try {
+            const domainsData = await getDataFromStorage ("domains")
+            return domainsData
+        } catch (error) {
+            console.error("Error fetching domains data from the database:", error);
+            throw error;
+        }
+    }
+
+    async function processDomainsData(domainsData, domainId) {
+        try {
+            if (domainsData && domainsData.records && domainsData.records[0]) {
+                const domains = domainsData.records.toSorted((a, b) => {
+                    const nameA = a.fields.name.toLowerCase();
+                    const nameB = b.fields.name.toLowerCase();
+
+                    if (nameA < nameB) return -1;
+                    if (nameA > nameB) return 1;
+                    return 0;
+                });
+                domainsContainer.innerHTML = ""
+                for (const domain of domains) {
+                    const radioGroup = document.createElement("div");
+                    radioGroup.classList.add("d-flex");
+                    radioGroup.classList.add("flex-line");
+                    const radio = document.createElement("input");
+                    radio.type = "radio";
+                    radio.name = "domains";
+                    radio.value = domain.id;
+                    radio.id = domain.id;
+                    if (domainId != undefined && domainId != "") {
+                        radio.checked = (domain.id == domainId);
+                    }
+
+                    const radioLabel = document.createElement('label')
+                    radioLabel.htmlFor = domain.id;
+                    radioLabel.innerText = domain.fields.name;
+
+                    radio.addEventListener("click", async () => {
+                        const tagsData = await getTagsData(domain.fields.name);
+                        const groupsData = await getGroupsData(domain.fields.name);
+                        addButton.removeAttribute('disabled');
+                        await processTagsData(tagsData)
+                        await processGroupsData(groupsData, [])
+                    })
+
+                    radioGroup.appendChild(radio);
+                    radioGroup.appendChild(radioLabel);
+                    domainsContainer.appendChild(radioGroup);
+
+                    //domainsContainer.appendChild(newline);
+                }
+                domainsContainer.classList.add("d-flex");
+                domainsContainer.classList.add("flex-column");
+            }
+        } catch (error) {
+            console.error("Error handling domain data:", error);
+        }
+    }
+
+    // info tags pour construire les checkbox
+    async function getTagsData() {
+        try {
+            const tagsData = await getDataFromStorage ("tags")
+            return tagsData
+            /*
+            const apiUrl = `https://api.airtable.com/v0/app7zNJoX11DY99UA/Tags?filterByFormula=` + encodeURIComponent(`AND({domain_name}="` + domain + `")`);
+            const response = await fetch(apiUrl, {headers});
+            const data = await response.json();
+            return data;*/
+        } catch (error) {
+            console.error("Error fetching tags data from the database:", error);
+            throw error;
+        }
+    }
+
+    async function processTagsData(tagsData, selectedTagsIds) {
+        try {
+            if (tagsData && tagsData.records && tagsData.records[0]) {
+                const tags = tagsData.records.toSorted((a, b) => {
+                    const nameA = a.fields.name.toLowerCase();
+                    const nameB = b.fields.name.toLowerCase();
+
+                    if (nameA < nameB) return -1;
+                    if (nameA > nameB) return 1;
+                    return 0;
+                });
+
+                tagsDiv.innerHTML = ""
+                for (const tag of tags) {
+                    if (tag.fields.name != undefined) {
+                        const newTagDiv = document.createElement("div");
+                        const checkbox = document.createElement("input");
+                        checkbox.type = "checkbox";
+                        checkbox.name = "tags";
+                        checkbox.value = tag.id;
+                        checkbox.id = tag.id;
+                        //
+                        if (selectedTagsIds != undefined && selectedTagsIds.length != 0) {
+                            checkbox.checked = selectedTagsIds.includes(tag.id);
+                        }
+
+
+                        const checkboxLabel = document.createElement("label");
+                        checkboxLabel.htmlFor = tag.id;
+                        checkboxLabel.innerText = tag.fields.name;
+
+                        newTagDiv.appendChild(checkbox);
+                        newTagDiv.appendChild(checkboxLabel);
+
+                        tagsDiv.append(newTagDiv)
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Error handling tab data:", error);
+        }
+    }
+
+    // info groups pour construire les radiobutton
+    async function getGroupsData(domainId) {
+        try {
+            const apiUrl = `https://api.airtable.com/v0/app7zNJoX11DY99UA/Groups?filterByFormula=` + encodeURIComponent(`AND({domain_id}="` + domainId + `")`);
+            const response = await fetch(apiUrl, {headers});
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error("Error fetching data from the database:", error);
+            throw error;
+        }
+    }
+
+    async function processGroupsData(groupsData, selectedGroups) {
+        function trouverFils(array, parent) {
+            let children = [];
+            if (Array.isArray(array)) {
+                array.forEach(record => {
+                    const fields = record.fields;
+                    if (Array.isArray(fields.group) && fields.group.length > 0) {
+                        if (parent == fields.group[0]) {
+                            children.push({
+                                id: record.id,
+                                text: fields.name,
+                                //name: "groups",
+                                children: trouverFils(array, record.id),
+                                checked: selectedGroups.includes(fields.name)
+                            });
+                        }
+                    }
+                });
+            }
+            return children;
+        }
+
+        try {
+            if (groupsData && groupsData.records && groupsData.records[0]) {
+                let result = trouverFils(groupsData.records, "recqhM5UDTNnUVvaL");
+                let groupCheckboxesList = document.getElementById("groups");
+                groupCheckboxesList.innerHTML = "";
+                tree = new Tree('#groups', {
+                    data: result,
+                    closeDepth: 3,
+                    loaded: function () {
+                    },
+                    onChange: function () {
+                        checkedGroups = this.values;
+                    }
+                });
+            }
+        } catch (error) {
+            console.error("Error fetching or processing data:", error);
+        }
+    }
+
+    // récup de la fiche correspondant à l'url
+    async function getPinData(url) {
+        try {
+            const filterField = 'url';
+            const filterValue = "^" + url.replace(/[|\\{}()[\]^$+*?.\/]/g, '\\$&') + "$";
+            const filterFormula = `REGEX_MATCH({${filterField}}, "${filterValue}" )`;
+            const apiUrl = `https://api.airtable.com/v0/app7zNJoX11DY99UA/pins?filterByFormula=${encodeURIComponent(filterFormula)}`;
+            const response = await fetch(apiUrl, {headers});
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error("Error fetching data from the database:", error);
+            throw error;
+        }
+    }
+
+    async function getSiteData(site) {
+        try {
+            const apiUrl = `https://api.airtable.com/v0/app7zNJoX11DY99UA/Sites?filterByFormula=AND({site}='` + site + `')`;
+            const response = await fetch(apiUrl, {headers});
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error("Error fetching data from the database:", error);
+            throw error;
+        }
+    }
+
+    async function processPinData(currentTab, pinData) {
+        try {
+            const cardIdInput = document.getElementById("card_id");
+            const titleInput = document.getElementById("title");
+            const urlInput = document.getElementById("url");
+            const commentInput = document.getElementById("comment");
+            const imgUrlInput = document.getElementById("img_url");
             const imgElement = document.getElementById("img");
-            imgElement.src = imgUrl.value;
-        });
+            const ratingInput = document.getElementById("rating");
+            const statusInput = document.getElementById("status");
+
+            titleInput.value = currentTab.title;
+            urlInput.value = currentTab.url;
+            addButton.style.display = "none"
+            updateButton.style.display = "none"
+
+            if (!pinData || !pinData.records || pinData.records.length === 0) {
+                commentInput.value = "";
+                const thumbnailUrl = await getThumbnail(currentTab.url);
+                imgUrlInput.value = thumbnailUrl;
+                imgElement.src = thumbnailUrl;
+                ratingInput.value = "0";
+                updateStars(0, 0);
+                //
+                addButton.style.display = "block"
+                updateButton.style.display = "none"
+            } else {
+                const record = pinData.records[0];
+                titleInput.value = record.fields.name;
+                urlInput.value = record.fields.url;
+                cardIdInput.value = record.id;
+                commentInput.value = (record.fields.description == undefined ? "" : record.fields.description);
+                imgUrlInput.value = record.fields.img_url;
+                imgElement.src = record.fields.img_url;
+                ratingInput.value = record.fields.rating;
+                statusInput.checked = record.fields.status == "1"
+                updateStars(0, record.fields.rating);
+                addButton.style.display = "none"
+                updateButton.style.display = "block"
+            }
+        } catch (error) {
+            console.error("Error handling tab data:", error);
+        }
     }
 
-    function setListenerOnRefreshButton() {
-        refreshButton.addEventListener('click', () => {
-            callForDataFromBackground();
-        });
+
+    async function processSiteData(currentTabSite, siteData) {
+        try {
+            site.value = currentTabSite;
+            newSite.value = true;
+            if (siteData != undefined) {
+                newSite.value = false;
+                if (siteData && siteData.records && siteData.records.length > 0  && siteData.records[0].fields && siteData.records[0].fields.site_rating && siteData.records[0].fields.site_rating.length > 0 )
+                siteRating.value = siteData.records[0].fields.site_rating[0]
+            }
+        } catch (error) {
+            console.error("Error handling site data:", error);
+        }
     }
 
-    function setListenerOnCancelButton() {
-        cancelButton.addEventListener("click", function () {
-            window.close();
-        });
-    }
-
-    function setListenerOnStars() {
-        function updateStars(new_value) {
-            stars.forEach((star, index) => {
-                if (index < new_value) {
-                    star.classList.add('bi-star-fill');
-                    star.classList.remove('bi-star');
-                } else {
-                    star.classList.add('bi-star');
-                    star.classList.remove('bi-star-fill');
-                }
+    async function createSite(siteData) {
+        try {
+            const response = await fetch("https://api.airtable.com/v0/app7zNJoX11DY99UA/Sites", {
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + token,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(siteData)
             });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const responseData = await response.json();
+            console.log("Response data:", responseData);
+
+            // réponse
+            const record = responseData.records[0];
+            const siteId = record.id;
+            const createdTime = record.createdTime;
+            const site = record.fields.site;
+            const siteRating = record.fields.site_rating;
+            const domain = record.fields.domain[0];
+            const domainName = record.fields.domain_name[0];
+
+            console.log(`Site ID: ${siteId}`);
+            console.log(`Created Time: ${createdTime}`);
+            console.log(`Site: ${site}`);
+            console.log(`Site Rating: ${siteRating}`);
+            console.log(`Domain ID: ${domain}`);
+            console.log(`Domain Name: ${domainName}`);
+
+            // You can now use these variables as needed in your application
+            return record;
+        } catch (error) {
+            console.error("Error making POST request:", error);
+            return null;
+        }
+    }
+
+    async function updateSite(siteData) {
+        try {
+            const response = await fetch("https://api.airtable.com/v0/app7zNJoX11DY99UA/Sites", {
+                method: "PATCH",
+                headers: {
+                    "Authorization": "Bearer " + token,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(siteData)
+            });
+
+            // Cacher le spinner après une courte période
+            setTimeout(() => {
+                spinnerContainer.style.display = "none";
+            }, 1000);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const responseData = await response.json();
+            console.log("Response data:", responseData);
+
+            if (responseData.records.length > 0) {
+                const record = responseData.records[0];
+                return record;
+            } else {
+                return undefined;
+            }
+        } catch (error) {
+            console.error("Error making PATCH request:", error);
+            return null;
+        }
+    }
+
+
+    async function createPin(pinData) {
+        try {
+            const response = await fetch("https://api.airtable.com/v0/app7zNJoX11DY99UA/Pins", {
+                method: "POST",
+                headers: {
+                    "Authorization": " Bearer " + token,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(pinData)
+            })
+                .then(() => setTimeout(() => {
+                    spinnerContainer.style.display = "none";
+                }, 1000))
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const responseData = await response.json();
+            console.log("Response data:", responseData);
+            if (responseData.records.length > 0) {
+                const record = responseData.records[0];
+                return record;
+            } else return null;
+        } catch (error) {
+            console.error("Error making POST request:", error);
+        }
+    }
+
+    async function updatePin(pinData) {
+        try {
+            const response = await fetch("https://api.airtable.com/v0/app7zNJoX11DY99UA/Pins", {
+                method: "PATCH",
+                headers: {
+                    "Authorization": " Bearer " + token,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(pinData)
+            })
+                .then(() => setTimeout(() => {
+                    spinnerContainer.style.display = "none";
+                }, 1000))
+            //------------
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const responseData = await response.json();
+            console.log("Response data:", responseData);
+            if (responseData.records.length > 0) {
+                const record = responseData.records[0];
+                return record;
+            } else return null;
+        } catch (error) {
+            console.error("Error making POST request:", error);
+        }
+    }
+
+    async function handleFormSubmit(action, siteData, pinData) {
+        const formData = new FormData(form);
+        const selectedTags = formData.getAll("tags");
+        const selectedDomains = formData.getAll("domains");
+        let siteId = (function() {
+            if (siteData != undefined && siteData.records.length > 0) {
+                return siteData.records[0].id
+            } else return undefined
+        })();
+
+        let pinId = (function() {
+            if (pinData != undefined && pinData.records.length > 0) {
+                return pinData.records[0].id
+            } else return undefined
+        })();
+        let method = ""
+        let postData;
+        //TODO gestion create
+        if (action === "cancel") {
+            window.close();
+            return null;
         }
 
-        stars.forEach(star => {
-            star.addEventListener('click', () => {
-                let old_value = parseInt(rating.value);
-                let new_value = parseInt(star.getAttribute('data-value'));
-
-                if (old_value === 1 && new_value === 1) {
-                    new_value = 0;
-                }
-                rating.value = new_value;
-                updateStars(new_value);
-            });
-        });
-    }
-
-    function setListenerOnForm() {
-        form.addEventListener("submit", async (event) => {
-            event.preventDefault();
+        // si la fiche n'existe pas'
+        //if (action === "add") {
+        if (pinId == undefined) {
+            /***here**/
             spinnerContainer.style.display = "block";
+            // teste si le site "parent" existe.
+            // si il n'existe pas, on le crée et on, récupère
+            if (siteId == undefined) {
+                //création du site + création du pin
+                let siteRatingValue = "0"
+                if (siteRating.value != undefined && siteRating.value!="") {
+                    siteRatingValue = siteRating.value;
+                }
+                siteData = {
+                    "records": [
+                        {
+                            "fields": {
+                                "site": site.value,
+                                //"site_rating": siteRating.value,
+                                "site_rating": siteRatingValue,
+                                "domain": selectedDomains
+                            }
+                        }
+                    ]
+                };
+                const newSiteRecord = await createSite(siteData);
+                siteId = newSiteRecord.id
+            }
+                // sinon (le site parent existe déjà on met à jour la donnée "site")
+            //TODO moyen d'optimiser ça : pas besoin si on n'a pas modifié les données "site"
+            else {
+                siteData = {
+                    "records": [
+                        {
+                            "id": siteId,
+                            "fields": {
+                                "site": site.value,
+                                "site_rating": siteRating.value,
+                                "domain": selectedDomains
+                            }
+                        }
+                    ]
+                }
+                await updateSite(siteData);
+            }
 
-            chrome.runtime.sendMessage({
-                action: "handleFormSubmit",
-                params: {
-                    formData: new FormData(form),
-                    checkedGroups: checkedGroups,
-                    tagAddOrUpdate: addButton.style.display === "block" ? "add" : "update"
-                }
-            }, (response) => {
-                if (response.success) {
-                    window.close();
-                } else {
-                    spinnerContainer.style.display = "none";
-                    alert("An error occurred. Please try again.");
-                }
-            });
-        });
+            //creation du pin
+            method = "POST";
+            pinData = {
+                "records": [{
+                    "fields": {
+                        "name": formData.get("title"),
+                        "rating": formData.get("rating"),
+                        "url": formData.get("url"),
+                        "site": [siteId],
+                        "description": formData.get("comment") == undefined ? "" : formData.get("comment"),
+                        "img_url": formData.get("img_url"),
+                        "tags": selectedTags,
+                        "domain": selectedDomains,
+                        "groups": checkedGroups,
+                        "status": formData.get("status") === "on" ? "1" : "0"
+                    }
+                }]
+            };
+
+            const newPinRecord = await createPin(pinData)
+            addButton.style.display = "none"
+            updateButton.style.display = "block"
+            console.log ("newPinRecord : "+ newPinRecord)
+            //} else if (action === "update") {
+        } else {
+            spinnerContainer.style.display = "block";
+            pinData = {
+                "records": [{
+                    "id": pinId,
+                    "fields": {
+                        "name": formData.get("title"),
+                        "rating": formData.get("rating"),
+                        "url": formData.get("url"),
+                        "site": [siteId],
+                        "description": formData.get("comment") == undefined ? "" : formData.get("comment"),
+                        "img_url": formData.get("img_url"),
+                        "tags": selectedTags,
+                        "domain": selectedDomains,
+                        "groups": checkedGroups,
+                        "status": formData.get("status") === "on" ? "1" : "0"
+                    }
+                }]
+            };
+            await updatePin(pinData);
+        }
+        // window.close();
     }
 
-    function setAccordionItem() {
+    /**********************/
+    try {
+        const currentTab = await getCurrentTab(); // données de la page
+        const currentTabUrl = currentTab.url;
+        const currentTabSite = getSiteFromUrl(currentTabUrl);
+        //-----------
+        const siteData = await getSiteData(currentTabSite);
+        const pinData = await getPinData(currentTabUrl);
+        const domainsData = await getDomainsData(); // liste de tous les domaines
+        const tagsData = await getTagsData(pinData?.domain_id);
+        const groupsData = await getGroupsData(pinData?.domain_id);
+
+        //TODO à poursuivre
+        spinnerContainer.style.display = "block";
+        await processPinData(currentTab, pinData); // récup des données en base ou des données de la page
+        await processSiteData(currentTabSite, siteData); // récup des données en base ou des données de la page
+        await processDomainsData(domainsData, pinData?.records?.[0]?.fields?.domain_id?.[0]);
+        await processTagsData(tagsData, pinData?.records?.[0]?.fields?.tags_id);
+        await processGroupsData(groupsData, pinData?.records?.[0]?.fields?.groups_id);
+        await setAccordionItem();
+        spinnerContainer.style.display = "none";
+        // submit
+        form.addEventListener("submit", async function (event) {
+            event.preventDefault();
+            const action = event.submitter ? event.submitter.value : null;
+            await handleFormSubmit(action, siteData, pinData);
+        });
+    } catch
+        (error) {
+        console.error("Error:", error);
+    }
+
+    async function setAccordionItem() {
         const accordionItemHeaders = document.querySelectorAll(".accordion-item-header");
         accordionItemHeaders.forEach(accordionItemHeader => {
             accordionItemHeader.addEventListener("click", event => {
+                // Uncomment in case you only want to allow for the display of only one collapsed item at a time!
                 const currentlyActiveAccordionItemHeader = document.querySelector(".accordion-item-header.active");
                 if (currentlyActiveAccordionItemHeader && currentlyActiveAccordionItemHeader !== accordionItemHeader) {
                     currentlyActiveAccordionItemHeader.classList.toggle("active");
@@ -151,77 +740,9 @@ document.addEventListener("DOMContentLoaded", async function () {
                 } else {
                     accordionItemBody.style.maxHeight = 0;
                 }
+
             });
-        });
-    }
-
-    async function getCurrentTab() {
-        return new Promise((resolve, reject) => {
-            const queryOptions = { active: true, currentWindow: true };
-            chrome.tabs.query(queryOptions, (tabs) => {
-                const currentTab = tabs[0];
-                if (currentTab) {
-                    resolve(currentTab);
-                } else {
-                    reject(new Error("No active tab found."));
-                }
-            });
-        });
-    }
-
-    function getSiteFromUrl(url) {
-        try {
-            const parsedURL = new URL(url);
-            return parsedURL.hostname.replace(/^www\./, '');
-        } catch (error) {
-            console.error("Error parsing URL:", error);
-            return url.replace(/^https?:\/\//, '').replace(/^www\./, '');
-        }
-    }
-
-    async function processDomainsData(domainsData, selectedDomain) {
-        try {
-            domainsContainer.innerHTML = "";
-            domainsData.forEach(domain => {
-                const radioGroup = document.createElement("div");
-                radioGroup.classList.add("d-flex", "flex-line");
-
-                const radio = document.createElement("input");
-                radio.type = "radio";
-                radio.name = "domains";
-                radio.value = domain.id;
-                radio.id = domain.id;
-                radio.checked = selectedDomain !== undefined && domain.fields.name === selectedDomain;
-
-                const radioLabel = document.createElement('label');
-                radioLabel.htmlFor = domain.id;
-                radioLabel.innerText = domain.fields.name;
-
-                radio.addEventListener("click", async () => {
-                    // Handle radio button click
-                });
-
-                radioGroup.appendChild(radio);
-                radioGroup.appendChild(radioLabel);
-                domainsContainer.appendChild(radioGroup);
-            });
-
-            domainsContainer.classList.add("d-flex", "flex-column");
-        } catch (error) {
-            console.error("Error processing domains data:", error);
-        }
-    }
-
-    // Additional functions for handling tags, groups, and other data processing can be added here
-
-    spinnerContainer.style.display = "block";
-    await refreshPopupWithStorageData();
-    spinnerContainer.style.display = "none";
-
-    setListenerOnCancelButton();
-    setListenerOnImgUrlInput();
-    setListenerOnDomainItems();
-    setListenerOnRefreshButton();
-    setListenerOnStars();
-    setListenerOnForm();
-});
+        })
+    };
+})
+;
