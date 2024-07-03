@@ -216,8 +216,8 @@ document.addEventListener("DOMContentLoaded", async function () {
                     radioLabel.innerText = domain.fields.name;
 
                     radio.addEventListener("click", async () => {
-                        const tagsData = await getTagsData(domain.fields.name);
-                        const groupsData = await getGroupsData(domain.fields.name);
+                        const tagsData = await getTagsData(domain.id);
+                        const groupsData = await getGroupsData(domain.id);
                         addButton.removeAttribute('disabled');
                         await processTagsData(tagsData)
                         await processGroupsData(groupsData, [])
@@ -238,9 +238,10 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     // info tags pour construire les checkbox
-    async function getTagsData() {
+    async function getTagsData(domainId) {
         try {
-            const tagsData = await getDataFromStorage ("tags")
+            const tagsDataFull = await getDataFromStorage ("tags")
+            const tagsData = tagsDataFull.records.filter((e)=> e.fields.domain_id == domainId)
             return tagsData
             /*
             const apiUrl = `https://api.airtable.com/v0/app7zNJoX11DY99UA/Tags?filterByFormula=` + encodeURIComponent(`AND({domain_name}="` + domain + `")`);
@@ -255,8 +256,8 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     async function processTagsData(tagsData, selectedTagsIds) {
         try {
-            if (tagsData && tagsData.records && tagsData.records[0]) {
-                const tags = tagsData.records.toSorted((a, b) => {
+            if (tagsData) {
+                const tags = tagsData.toSorted((a, b) => {
                     const nameA = a.fields.name.toLowerCase();
                     const nameB = b.fields.name.toLowerCase();
 
@@ -699,8 +700,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         const siteData = await getSiteData(currentTabSite);
         const pinData = await getPinData(currentTabUrl);
         const domainsData = await getDomainsData(); // liste de tous les domaines
-        const tagsData = await getTagsData(pinData?.domain_id);
-        const groupsData = await getGroupsData(pinData?.domain_id);
+        const tagsData = await getTagsData(pinData?.records?.[0]?.fields?.domain_id?.[0]);
+        const groupsData = await getGroupsData(pinData?.records?.[0]?.fields?.domain_id?.[0]);
 
         //TODO à poursuivre
         spinnerContainer.style.display = "block";
