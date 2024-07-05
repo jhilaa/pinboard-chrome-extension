@@ -38,8 +38,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         });
     }
 
-    refreshButton.addEventListener("click", (e)=> {
-        chrome.runtime.sendMessage({ action: 'fetchDataAndStore' }, (response) => {
+    refreshButton.addEventListener("click", (e) => {
+        chrome.runtime.sendMessage({action: 'fetchDataAndStore'}, (response) => {
             if (response.status === 'success') {
                 message.textContent = 'Data fetched and stored successfully!';
             } else {
@@ -178,7 +178,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     // info domaines pour construire les radiobouton
     async function getDomainsData() {
         try {
-            const domainsData = await getDataFromStorage ("domains")
+            const domainsData = await getDataFromStorage("domains")
             return domainsData
         } catch (error) {
             console.error("Error fetching domains data from the database:", error);
@@ -240,8 +240,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     // info tags pour construire les checkbox
     async function getTagsData(domainId) {
         try {
-            const tagsDataFull = await getDataFromStorage ("tags")
-            const tagsData = tagsDataFull.records.filter((e)=> e.fields.domain_id == domainId)
+            const tagsDataFull = await getDataFromStorage("tags")
+            const tagsData = tagsDataFull.records.filter((e) => e.fields.domain_id == domainId)
             return tagsData
             /*
             const apiUrl = `https://api.airtable.com/v0/app7zNJoX11DY99UA/Tags?filterByFormula=` + encodeURIComponent(`AND({domain_name}="` + domain + `")`);
@@ -311,19 +311,19 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     async function processGroupsData(groupsData, selectedGroups) {
-        function trouverFils(array, parent) {
+        function trouverFils(array, groupId) {
             let children = [];
-            if (Array.isArray(array)) {
+            if (Array.isArray(array) && array.length > 0 && groupId) {
                 array.forEach(record => {
                     const fields = record.fields;
-                    if (Array.isArray(fields.group) && fields.group.length > 0) {
-                        if (parent == fields.group[0]) {
+                    if (fields.parent_group_id) {
+                        if (groupId == fields.parent_group_id) {
                             children.push({
                                 id: record.id,
                                 text: fields.name,
                                 //name: "groups",
                                 children: trouverFils(array, record.id),
-                                checked: selectedGroups.includes(fields.name)
+                                checked: selectedGroups.includes(record.id)
                             });
                         }
                     }
@@ -333,8 +333,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
 
         try {
-            if (groupsData && groupsData.records && groupsData.records[0]) {
-                let result = trouverFils(groupsData.records, "recqhM5UDTNnUVvaL");
+            if (groupsData && groupsData.records ) {
+                let result = trouverFils(groupsData.records, "recqhM5UDTNnUVvaL",1);
+                //let result = trouverFils(groupsData.records, "recb9HoBH3Ga0GbCK", 1);
                 let groupCheckboxesList = document.getElementById("groups");
                 groupCheckboxesList.innerHTML = "";
                 tree = new Tree('#groups', {
@@ -349,6 +350,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             }
         } catch (error) {
             console.error("Error fetching or processing data:", error);
+            console.log (groupsData)
         }
     }
 
@@ -432,8 +434,8 @@ document.addEventListener("DOMContentLoaded", async function () {
             newSite.value = true;
             if (siteData != undefined) {
                 newSite.value = false;
-                if (siteData && siteData.records && siteData.records.length > 0  && siteData.records[0].fields && siteData.records[0].fields.site_rating && siteData.records[0].fields.site_rating.length > 0 )
-                siteRating.value = siteData.records[0].fields.site_rating[0]
+                if (siteData && siteData.records && siteData.records.length > 0 && siteData.records[0].fields && siteData.records[0].fields.site_rating && siteData.records[0].fields.site_rating.length > 0)
+                    siteRating.value = siteData.records[0].fields.site_rating[0]
             }
         } catch (error) {
             console.error("Error handling site data:", error);
@@ -578,13 +580,13 @@ document.addEventListener("DOMContentLoaded", async function () {
         const formData = new FormData(form);
         const selectedTags = formData.getAll("tags");
         const selectedDomains = formData.getAll("domains");
-        let siteId = (function() {
+        let siteId = (function () {
             if (siteData != undefined && siteData.records.length > 0) {
                 return siteData.records[0].id
             } else return undefined
         })();
 
-        let pinId = (function() {
+        let pinId = (function () {
             if (pinData != undefined && pinData.records.length > 0) {
                 return pinData.records[0].id
             } else return undefined
@@ -607,7 +609,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             if (siteId == undefined) {
                 //création du site + création du pin
                 let siteRatingValue = "0"
-                if (siteRating.value != undefined && siteRating.value!="") {
+                if (siteRating.value != undefined && siteRating.value != "") {
                     siteRatingValue = siteRating.value;
                 }
                 siteData = {
@@ -665,7 +667,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             const newPinRecord = await createPin(pinData)
             addButton.style.display = "none"
             updateButton.style.display = "block"
-            console.log ("newPinRecord : "+ newPinRecord)
+            console.log("newPinRecord : " + newPinRecord)
             //} else if (action === "update") {
         } else {
             spinnerContainer.style.display = "block";
