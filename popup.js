@@ -186,6 +186,16 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
     }
 
+    async function getPinsData() {
+        try {
+            const pinsData = await getDataFromStorage("pins")
+            return pinsData
+        } catch (error) {
+            console.error("Error fetching pin data from the database:", error);
+            throw error;
+        }
+    }
+
     async function processDomainsData(domainsData, domainId) {
         try {
             if (domainsData && domainsData.records && domainsData.records[0]) {
@@ -432,10 +442,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         try {
             site.value = currentTabSite;
             newSite.value = true;
-            if (siteData != undefined) {
+            if (siteData != undefined && siteData.records && siteData.records.length > 0 &&  siteData.records[0].fields && siteData.records[0].fields.site_rating) {
                 newSite.value = false;
-                if (siteData && siteData.records && siteData.records.length > 0 && siteData.records[0].fields && siteData.records[0].fields.site_rating && siteData.records[0].fields.site_rating.length > 0)
-                    siteRating.value = siteData.records[0].fields.site_rating[0]
+                siteRating.value = siteData.records[0].fields.site_rating[0]
             }
         } catch (error) {
             console.error("Error handling site data:", error);
@@ -466,14 +475,14 @@ document.addEventListener("DOMContentLoaded", async function () {
             const createdTime = record.createdTime;
             const site = record.fields.site;
             const siteRating = record.fields.site_rating;
-            const domain = record.fields.domain[0];
+            const domainId = record.fields.domain_id[0];
             const domainName = record.fields.domain_name[0];
 
             console.log(`Site ID: ${siteId}`);
             console.log(`Created Time: ${createdTime}`);
             console.log(`Site: ${site}`);
             console.log(`Site Rating: ${siteRating}`);
-            console.log(`Domain ID: ${domain}`);
+            console.log(`Domain ID: ${domainId}`);
             console.log(`Domain Name: ${domainName}`);
 
             // You can now use these variables as needed in your application
@@ -619,7 +628,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                                 "site": site.value,
                                 //"site_rating": siteRating.value,
                                 "site_rating": siteRatingValue,
-                                "domain": selectedDomains
+                                "domain_id": selectedDomains
                             }
                         }
                     ]
@@ -637,7 +646,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                             "fields": {
                                 "site": site.value,
                                 "site_rating": siteRating.value,
-                                "domain": selectedDomains
+                                "domain_id": selectedDomains
                             }
                         }
                     ]
@@ -648,21 +657,19 @@ document.addEventListener("DOMContentLoaded", async function () {
             //creation du pin
             method = "POST";
             pinData = {
-                "records": [{
                     "fields": {
                         "name": formData.get("title"),
                         "rating": formData.get("rating"),
                         "url": formData.get("url"),
-                        "site": [siteId],
+                        "site_id": [siteId],
                         "description": formData.get("comment") == undefined ? "" : formData.get("comment"),
                         "img_url": formData.get("img_url"),
-                        "tags": selectedTags,
-                        "domain": selectedDomains,
-                        "groups": checkedGroups,
+                        "tags_id": selectedTags,
+                        "domain_id": selectedDomains,
+                        "groups_id": checkedGroups,
                         "status": formData.get("status") === "on" ? "1" : "0"
                     }
-                }]
-            };
+                };
 
             const newPinRecord = await createPin(pinData)
             addButton.style.display = "none"
@@ -678,12 +685,12 @@ document.addEventListener("DOMContentLoaded", async function () {
                         "name": formData.get("title"),
                         "rating": formData.get("rating"),
                         "url": formData.get("url"),
-                        "site": [siteId],
+                        "site_id": [siteId],
                         "description": formData.get("comment") == undefined ? "" : formData.get("comment"),
                         "img_url": formData.get("img_url"),
-                        "tags": selectedTags,
-                        "domain": selectedDomains,
-                        "groups": checkedGroups,
+                        "tags_id": selectedTags,
+                        "domain_id": selectedDomains,
+                        "groups_id": checkedGroups,
                         "status": formData.get("status") === "on" ? "1" : "0"
                     }
                 }]

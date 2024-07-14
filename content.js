@@ -1,6 +1,6 @@
 
 
-
+/*
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'getThumbnail' && request.url) {
         // Ici, vous ajouterez le code pour obtenir la miniature de l'URL
@@ -17,3 +17,4 @@ function fetchThumbnailFromURL(url) {
     return "https://img.freepik.com/free-vector/colorful-pastel-poly-background_53876-62618.jpg"
 }
 
+*/
