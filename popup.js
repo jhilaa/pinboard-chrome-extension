@@ -310,10 +310,15 @@ document.addEventListener("DOMContentLoaded", async function () {
     // info groups pour construire les radiobutton
     async function getGroupsData(domainId) {
         try {
+			const groupsDataFull = await getDataFromStorage("groups")
+            const groupsData = groupsDataFull.records.filter((e) => e.fields.domain_id == domainId)
+            return groupsData
+			/*
             const apiUrl = `https://api.airtable.com/v0/app7zNJoX11DY99UA/Groups?filterByFormula=` + encodeURIComponent(`AND({domain_id}="` + domainId + `")`);
             const response = await fetch(apiUrl, {headers});
             const data = await response.json();
             return data;
+			*/
         } catch (error) {
             console.error("Error fetching data from the database:", error);
             throw error;
@@ -333,7 +338,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                                 text: fields.name,
                                 //name: "groups",
                                 children: trouverFils(array, record.id),
-                                checked: selectedGroups.includes(record.id)
+                                checked: selectedGroups && selectedGroups.includes(record.id)
                             });
                         }
                     }
@@ -343,9 +348,11 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
 
         try {
-            if (groupsData && groupsData.records ) {
-                let result = trouverFils(groupsData.records, "recqhM5UDTNnUVvaL",1);
-                //let result = trouverFils(groupsData.records, "recb9HoBH3Ga0GbCK", 1);
+            if (groupsData && groupsData.length > 0) {
+                const racine = groupsData.filter((group) => group.fields.parent_group_id == undefined )
+                let result = trouverFils(groupsData, racine[0].id);
+                //let result = trouverFils(groupsData, "recqhM5UDTNnUVvaL",1);
+                //let result = trouverFils(groupsData, "recb9HoBH3Ga0GbCK", 1);
                 let groupCheckboxesList = document.getElementById("groups");
                 groupCheckboxesList.innerHTML = "";
                 tree = new Tree('#groups', {

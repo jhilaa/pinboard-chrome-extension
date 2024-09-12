@@ -223,8 +223,10 @@ async function updateBadge(url) {
         chrome.action.setBadgeBackgroundColor({color: 'gold'});
     } else {
         if (siteData && siteData[0]?.fields?.site_rating) {
-            chrome.action.setBadgeText({text: siteData[0].fields.site_rating+"★"});
+            //chrome.action.setBadgeText({text: siteData[0].fields.site_rating+"★"});
+            chrome.action.setBadgeText({text: siteData[0].fields.site_rating});
             chrome.action.setBadgeBackgroundColor({color: 'gold'})
+            chrome.action.setBadgeTextColor({color: 'white'})
         } else {
             chrome.action.setBadgeText({text: ""});
             chrome.action.setBadgeBackgroundColor({color: 'lightgrey'})
